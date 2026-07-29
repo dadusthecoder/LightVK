@@ -1,9 +1,12 @@
 #pragma once
 #include <memory>
+#include <vector>
+#include <filesystem>
 
 #include "Engine/Core/Timer.h"
 #include "Engine/Scene/World.h"
 #include "Engine/Core/InputManager.h"
+#include "Engine/Renderer/Gpu/Renderer.h"
 
 struct GLFWwindow;
 
@@ -21,19 +24,38 @@ public:
     void Init();
     void Run();
     void Shutdown();
-protected:
-    void BeginUi();
-    void EndUi();
 
+protected:
+    /// Override for game logic (input, physics, AI, etc.)
     virtual void OnInit() {}
-    virtual void OnUpdate(uint32_t currentFrame) {}
+    virtual void OnUpdate(float dt) {}
     virtual void OnShutdown() {}
+
+    /// Override to draw ImGui widgets. Only called if UI is enabled.
+    /// The engine handles BeginFrame/EndFrame and ImGui lifecycle automatically.
+    virtual void OnDrawUi() {}
+
+    /// Call in OnInit() to enable the ImGui UI pass.
+    /// Runtime apps should NOT call this — zero ImGui overhead.
+    void EnableUi() { uiEnabled_ = true; }
+
+    /// Load a mesh from disk. Returns a handle for future reference.
+    /// Wraps all GPU internals (SSBO creation, upload, descriptor allocation).
+    Gpu::DrawList LoadMesh(const std::filesystem::path& path);
 
     GLFWwindow*                   window_ = nullptr;
     std::unique_ptr<World>        world_;
     std::unique_ptr<InputManager> input_;
     std::unique_ptr<Timer>        timer_;
-    std::unique_ptr<ImGuiLayer>   imguiLayer_;
+
+private:
+    void BeginUi();
+    void EndUi();
+    void RenderScene();
+
+    std::unique_ptr<ImGuiLayer>  imguiLayer_;
+    std::vector<Gpu::DrawList>   meshes_;
+    bool                         uiEnabled_ = false;
 };
 
 } // namespace Lgt

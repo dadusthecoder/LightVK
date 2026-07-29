@@ -3,37 +3,43 @@
 #include "Engine/Core/VkCheck.h"
 
 namespace Lgt::Vulkan {
-Context g_Context;
-void    Context::Init(GLFWwindow* window) {
+VulkanSurface*                 g_Surface = nullptr;
+VulkanInstance*                g_Instance = nullptr;
+VulkanDevice*                  g_Device = nullptr;
+VulkanAllocator*               g_Allocator = nullptr;
+VulkanLoadTimeStagingUploader* g_Uploader = nullptr;
+
+void Init(GLFWwindow* window) {
     LGT_ASSERT(volkInitialize() == VK_SUCCESS, "Filed to load the vulkan-1.dll");
 
-    instance = new VulkanInstance();
-    surface  = new VulkanSurface();
+    g_Instance = new VulkanInstance();
+    g_Surface  = new VulkanSurface();
 
     // create Vulkan Instance and load it using volk before creating the device
-    instance->Init(ENABLE_VALIDATION, VALIDATION_LAYERS);
-    volkLoadInstance(instance->Handle());
+    g_Instance->Init(ENABLE_VALIDATION, VALIDATION_LAYERS);
+    volkLoadInstance(g_Instance->Handle());
 
     // create surface
-    surface->Init(instance->Handle(), window);
+    g_Surface->Init(g_Instance->Handle(), window);
 
     // create vulkan device after loding instance with volk
-    device = new VulkanDevice(instance->Handle(), surface->Handle(), DEVICE_EXTENSIONS, VALIDATION_LAYERS);
-    volkLoadDevice(device->Logical());
+    g_Device = new VulkanDevice(g_Instance->Handle(), g_Surface->Handle(), DEVICE_EXTENSIONS, VALIDATION_LAYERS);
+    volkLoadDevice(g_Device->Logical());
 
-    allocator = new VulkanAllocator(instance->Handle(), device->Physical(), device->Logical());
+    g_Allocator = new VulkanAllocator(g_Instance->Handle(), g_Device->Physical(), g_Device->Logical());
 
-    uploader = new VulkanLoadTimeStagingUploader();
+    g_Uploader = new VulkanLoadTimeStagingUploader();
 }
-void Context::Shutdown() {
-    vkDeviceWaitIdle(g_Context.device->Logical());
 
-    delete uploader;
-    delete allocator;
-    delete device;
+void Shutdown() {
+    vkDeviceWaitIdle(g_Device->Logical());
 
-    surface->ShutDown();
-    instance->ShutDown();
+    delete g_Uploader;
+    delete g_Allocator;
+    delete g_Device;
+
+    g_Surface->ShutDown();
+    g_Instance->ShutDown();
 }
 
 } // namespace Lgt::Vulkan

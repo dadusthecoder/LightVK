@@ -1,6 +1,6 @@
-
 #include <stdexcept>
 #include <array>
+#include <imgui_impl_vulkan.h>
 #include "Engine/Core/Logger.h"
 #include "Context.h"
 #include "Engine/Renderer/Vulkan/Context.h"
@@ -14,12 +14,51 @@ void Renderer::Init(GLFWwindow* window) {
     glfwSetWindowUserPointer(window_, this);
     glfwSetFramebufferSizeCallback(window_, framebufferResizeCallback);
 
-    swapchain_.Init(Lgt::Vulkan::g_Context.device->Physical(),
-                    Lgt::Vulkan::g_Context.device->Logical(),
-                    Lgt::Vulkan::g_Context.surface->Handle(),
+    swapchain_.Init(Lgt::Vulkan::g_Device->Physical(),
+                    Lgt::Vulkan::g_Device->Logical(),
+                    Lgt::Vulkan::g_Surface->Handle(),
                     window_,
-                    Lgt::Vulkan::g_Context.device->GraphicsFamily(),
-                    Lgt::Vulkan::g_Context.device->PresentFamily());
+                    Lgt::Vulkan::g_Device->GraphicsFamily(),
+                    Lgt::Vulkan::g_Device->PresentFamily());
+
+    for (uint32_t i = 0; i < swapchain_.ImageCount(); ++i) {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width  = swapchain_.Extent().width;
+        imageInfo.extent.height = swapchain_.Extent().height;
+        imageInfo.extent.depth  = 1;
+        imageInfo.mipLevels     = 1;
+        imageInfo.arrayLayers   = 1;
+        imageInfo.format        = VK_FORMAT_D32_SFLOAT;
+        imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage         = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+
+        VkImage image;
+        VmaAllocation alloc;
+        Vulkan::g_Allocator->createImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, 0, image, alloc);
+        
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image                           = image;
+        viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format                          = VK_FORMAT_D32_SFLOAT;
+        viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+        viewInfo.subresourceRange.baseMipLevel   = 0;
+        viewInfo.subresourceRange.levelCount     = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount     = 1;
+        
+        VkImageView view;
+        vkCreateImageView(Vulkan::g_Device->Logical(), &viewInfo, nullptr, &view);
+        
+        swapchainDepthImages_.push_back(image);
+        swapchainDepthAllocs_.push_back(alloc);
+        swapchainDepthViews_.push_back(view);
+    }
 
     createCommandPool();
     createCommandBuffers();
@@ -30,17 +69,38 @@ void Renderer::Init(GLFWwindow* window) {
 }
 
 void Renderer::ShutDown() {
-    vkDeviceWaitIdle(Lgt::Vulkan::g_Context.device->Logical());
+    vkDeviceWaitIdle(Vulkan::g_Device->Logical());
 
-    swapchain_.Cleanup(Lgt::Vulkan::g_Context.device->Logical());
-    vkDestroyPipeline(Lgt::Vulkan::g_Context.device->Logical(), TraingleGfxPipeline_, nullptr);
+    if (sceneTarget_.colorImage != VK_NULL_HANDLE) {
+        ImGui_ImplVulkan_RemoveTexture(sceneTarget_.imguiDescriptor);
+        vkDestroyImageView(Vulkan::g_Device->Logical(), sceneTarget_.colorView, nullptr);
+        Vulkan::g_Allocator->destroyImage(sceneTarget_.colorImage, sceneTarget_.colorAlloc);
+        sceneTarget_.colorImage = VK_NULL_HANDLE;
+    }
+
+    if (sceneTarget_.depthImage != VK_NULL_HANDLE) {
+        vkDestroyImageView(Vulkan::g_Device->Logical(), sceneTarget_.depthView, nullptr);
+        Vulkan::g_Allocator->destroyImage(sceneTarget_.depthImage, sceneTarget_.depthAlloc);
+        sceneTarget_.depthImage = VK_NULL_HANDLE;
+    }
+
+    for (size_t i = 0; i < swapchainDepthImages_.size(); ++i) {
+        vkDestroyImageView(Vulkan::g_Device->Logical(), swapchainDepthViews_[i], nullptr);
+        Vulkan::g_Allocator->destroyImage(swapchainDepthImages_[i], swapchainDepthAllocs_[i]);
+    }
+    swapchainDepthImages_.clear();
+    swapchainDepthAllocs_.clear();
+    swapchainDepthViews_.clear();
+
+    swapchain_.Cleanup(Vulkan::g_Device->Logical());
+    vkDestroyPipeline(Vulkan::g_Device->Logical(), TraingleGfxPipeline_, nullptr);
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        vkDestroySemaphore(Lgt::Vulkan::g_Context.device->Logical(), imageAvailableSems_[i], nullptr);
-        vkDestroySemaphore(Lgt::Vulkan::g_Context.device->Logical(), renderFinishedSems_[i], nullptr);
-        vkDestroyFence(Lgt::Vulkan::g_Context.device->Logical(), inFlightFences_[i], nullptr);
+        vkDestroySemaphore(Lgt::Vulkan::g_Device->Logical(), imageAvailableSems_[i], nullptr);
+        vkDestroySemaphore(Lgt::Vulkan::g_Device->Logical(), renderFinishedSems_[i], nullptr);
+        vkDestroyFence(Lgt::Vulkan::g_Device->Logical(), inFlightFences_[i], nullptr);
     }
-    vkDestroyCommandPool(Lgt::Vulkan::g_Context.device->Logical(), commandPool_, nullptr);
+    vkDestroyCommandPool(Lgt::Vulkan::g_Device->Logical(), commandPool_, nullptr);
 }
 
 void Renderer::recreateSwapchain() {
@@ -50,25 +110,80 @@ void Renderer::recreateSwapchain() {
         glfwGetFramebufferSize(window_, &w, &h);
         glfwWaitEvents();
     }
-    vkDeviceWaitIdle(Lgt::Vulkan::g_Context.device->Logical());
+    vkDeviceWaitIdle(Lgt::Vulkan::g_Device->Logical());
+    
+    for (size_t i = 0; i < swapchainDepthImages_.size(); ++i) {
+        vkDestroyImageView(Vulkan::g_Device->Logical(), swapchainDepthViews_[i], nullptr);
+        Vulkan::g_Allocator->destroyImage(swapchainDepthImages_[i], swapchainDepthAllocs_[i]);
+    }
+    swapchainDepthImages_.clear();
+    swapchainDepthAllocs_.clear();
+    swapchainDepthViews_.clear();
+
     swapchain_.Recreate(window_);
+
+    for (uint32_t i = 0; i < swapchain_.ImageCount(); ++i) {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width  = swapchain_.Extent().width;
+        imageInfo.extent.height = swapchain_.Extent().height;
+        imageInfo.extent.depth  = 1;
+        imageInfo.mipLevels     = 1;
+        imageInfo.arrayLayers   = 1;
+        imageInfo.format        = VK_FORMAT_D32_SFLOAT;
+        imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage         = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+
+        VkImage image;
+        VmaAllocation alloc;
+        Vulkan::g_Allocator->createImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, 0, image, alloc);
+        
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image                           = image;
+        viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format                          = VK_FORMAT_D32_SFLOAT;
+        viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+        viewInfo.subresourceRange.baseMipLevel   = 0;
+        viewInfo.subresourceRange.levelCount     = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount     = 1;
+        
+        VkImageView view;
+        vkCreateImageView(Vulkan::g_Device->Logical(), &viewInfo, nullptr, &view);
+        
+        swapchainDepthImages_.push_back(image);
+        swapchainDepthAllocs_.push_back(alloc);
+        swapchainDepthViews_.push_back(view);
+    }
 }
 
-void Renderer::Render(DrawList* list, uint32_t frameIndex) {
+void Renderer::Render(DrawList* list, const glm::mat4& viewProj) {
 
-    // TODO-------------------------------------------
+    // Upload camera view-projection matrix to per-frame UBO
     auto* ubo = g_Buffers.Get(frameUBO_[currentFrame_]);
     LGT_ASSERT(ubo, "");
-    FrameUBO ubodata{glm::vec3{1.0, 1.0, 1.0}};
+    FrameUBO ubodata{viewProj};
     memcpy(ubo->mapped, &ubodata, sizeof(FrameUBO));
     //------------------------------------------------
     auto cmd = commandBuffers_[currentFrame_];
 
+    uint32_t targetWidth  = swapchain_.Extent().width;
+    uint32_t targetHeight = swapchain_.Extent().height;
+    if (sceneTarget_.colorImage != VK_NULL_HANDLE) {
+        targetWidth  = sceneTarget_.width;
+        targetHeight = sceneTarget_.height;
+    }
+
     VkViewport viewport{};
     viewport.x        = 0.0f;
     viewport.y        = 0.0f;
-    viewport.width    = static_cast<float>(swapchain_.Extent().width);
-    viewport.height   = static_cast<float>(swapchain_.Extent().height);
+    viewport.width    = static_cast<float>(targetWidth);
+    viewport.height   = static_cast<float>(targetHeight);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -76,7 +191,7 @@ void Renderer::Render(DrawList* list, uint32_t frameIndex) {
 
     VkRect2D scissor{};
     scissor.offset = {0, 0};
-    scissor.extent = swapchain_.Extent();
+    scissor.extent = {targetWidth, targetHeight};
 
     vkCmdSetScissor(cmd, 0, 1, &scissor);
     
@@ -105,9 +220,9 @@ void Renderer::Render(DrawList* list, uint32_t frameIndex) {
 bool Renderer::BeginFrame(uint32_t frameindex) {
     currentFrame_ = frameindex;
 
-    vkWaitForFences(Vulkan::g_Context.device->Logical(), 1, &inFlightFences_[currentFrame_], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(Vulkan::g_Device->Logical(), 1, &inFlightFences_[currentFrame_], VK_TRUE, UINT64_MAX);
 
-    VkResult result = vkAcquireNextImageKHR(Vulkan::g_Context.device->Logical(),
+    VkResult result = vkAcquireNextImageKHR(Vulkan::g_Device->Logical(),
                                             swapchain_.Handle(),
                                             UINT64_MAX,
                                             imageAvailableSems_[currentFrame_],
@@ -121,31 +236,31 @@ bool Renderer::BeginFrame(uint32_t frameindex) {
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
         throw std::runtime_error("vkAcquireNextImageKHR failed");
 
-    vkResetFences(Lgt::Vulkan::g_Context.device->Logical(), 1, &inFlightFences_[currentFrame_]);
+    vkResetFences(Lgt::Vulkan::g_Device->Logical(), 1, &inFlightFences_[currentFrame_]);
 
     // resource heap bind info
     VkDeviceAddressRangeEXT resourceDeviceAdderRange{};
-    resourceDeviceAdderRange.size    = g_Context.resourceHeap->Size();
-    resourceDeviceAdderRange.address = g_Context.resourceHeap->BufferAddress();
+    resourceDeviceAdderRange.size    = g_ResourceHeap->Size();
+    resourceDeviceAdderRange.address = g_ResourceHeap->BufferAddress();
 
     VkBindHeapInfoEXT resourceBind{};
     resourceBind.sType     = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
     resourceBind.heapRange = resourceDeviceAdderRange;
     resourceBind.reservedRangeOffset =
-        g_Context.resourceHeap->Size() - Vulkan::g_Context.device->DescriptorHeapProperties().minResourceHeapReservedRange;
-    resourceBind.reservedRangeSize = Lgt::Vulkan::g_Context.device->DescriptorHeapProperties().minResourceHeapReservedRange;
+        g_ResourceHeap->Size() - Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
+    resourceBind.reservedRangeSize = Lgt::Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
 
     // smapler heap bind info
     VkDeviceAddressRangeEXT samplerDeviceAdderRange{};
-    samplerDeviceAdderRange.size    = g_Context.samplerHeap->Size();
-    samplerDeviceAdderRange.address = g_Context.samplerHeap->BufferAddress();
+    samplerDeviceAdderRange.size    = g_SamplerHeap->Size();
+    samplerDeviceAdderRange.address = g_SamplerHeap->BufferAddress();
 
     VkBindHeapInfoEXT samplerBind{};
     samplerBind.sType     = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
     samplerBind.heapRange = samplerDeviceAdderRange;
     samplerBind.reservedRangeOffset =
-        g_Context.samplerHeap->Size() - Lgt::Vulkan::g_Context.device->DescriptorHeapProperties().minSamplerHeapReservedRange;
-    samplerBind.reservedRangeSize = Lgt::Vulkan::g_Context.device->DescriptorHeapProperties().minSamplerHeapReservedRange;
+        g_SamplerHeap->Size() - Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
+    samplerBind.reservedRangeSize = Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
 
     VkCommandBuffer cmd = commandBuffers_[currentFrame_];
     vkResetCommandBuffer(cmd, 0);
@@ -194,7 +309,99 @@ bool Renderer::BeginFrame(uint32_t frameindex) {
     return true;
 }
 
+void Renderer::ResizeSceneTarget(uint32_t width, uint32_t height) {
+    if (sceneTarget_.width == width && sceneTarget_.height == height)
+        return;
+
+    // Destroy old resources safely
+    if (sceneTarget_.colorImage != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(Vulkan::g_Device->Logical()); // Ensure GPU is not using the image
+        ImGui_ImplVulkan_RemoveTexture(sceneTarget_.imguiDescriptor);
+        vkDestroyImageView(Vulkan::g_Device->Logical(), sceneTarget_.colorView, nullptr);
+        Vulkan::g_Allocator->destroyImage(sceneTarget_.colorImage, sceneTarget_.colorAlloc);
+    }
+    if (sceneTarget_.depthImage != VK_NULL_HANDLE) {
+        vkDestroyImageView(Vulkan::g_Device->Logical(), sceneTarget_.depthView, nullptr);
+        Vulkan::g_Allocator->destroyImage(sceneTarget_.depthImage, sceneTarget_.depthAlloc);
+        sceneTarget_.depthImage = VK_NULL_HANDLE;
+    }
+
+    sceneTarget_.width  = width;
+    sceneTarget_.height = height;
+
+    if (width == 0 || height == 0)
+        return;
+
+    // Create new color image
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width  = width;
+    imageInfo.extent.height = height;
+    imageInfo.extent.depth  = 1;
+    imageInfo.mipLevels     = 1;
+    imageInfo.arrayLayers   = 1;
+    imageInfo.format        = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
+
+    Vulkan::g_Allocator->createImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, 0, sceneTarget_.colorImage, sceneTarget_.colorAlloc);
+
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image                           = sceneTarget_.colorImage;
+    viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format                          = VK_FORMAT_R8G8B8A8_UNORM;
+    viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel   = 0;
+    viewInfo.subresourceRange.levelCount     = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount     = 1;
+
+    vkCreateImageView(Vulkan::g_Device->Logical(), &viewInfo, nullptr, &sceneTarget_.colorView);
+
+    // Create new depth image
+    VkImageCreateInfo depthInfo{};
+    depthInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    depthInfo.imageType     = VK_IMAGE_TYPE_2D;
+    depthInfo.extent.width  = width;
+    depthInfo.extent.height = height;
+    depthInfo.extent.depth  = 1;
+    depthInfo.mipLevels     = 1;
+    depthInfo.arrayLayers   = 1;
+    depthInfo.format        = VK_FORMAT_D32_SFLOAT;
+    depthInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
+    depthInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthInfo.usage         = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
+    depthInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
+
+    Vulkan::g_Allocator->createImage(depthInfo, VMA_MEMORY_USAGE_GPU_ONLY, 0, sceneTarget_.depthImage, sceneTarget_.depthAlloc);
+
+    VkImageViewCreateInfo depthViewInfo{};
+    depthViewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    depthViewInfo.image                           = sceneTarget_.depthImage;
+    depthViewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+    depthViewInfo.format                          = VK_FORMAT_D32_SFLOAT;
+    depthViewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+    depthViewInfo.subresourceRange.baseMipLevel   = 0;
+    depthViewInfo.subresourceRange.levelCount     = 1;
+    depthViewInfo.subresourceRange.baseArrayLayer = 0;
+    depthViewInfo.subresourceRange.layerCount     = 1;
+
+    vkCreateImageView(Vulkan::g_Device->Logical(), &depthViewInfo, nullptr, &sceneTarget_.depthView);
+
+    // Register with ImGui
+    sceneTarget_.imguiDescriptor = ImGui_ImplVulkan_AddTexture(sceneTarget_.colorView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
 void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
+    bool isUiPass = (cmd == uiCommandBuffers_[currentFrame_]);
+    bool useSceneTarget = !isUiPass && (sceneTarget_.colorImage != VK_NULL_HANDLE);
+
     if (!clearColor) {
         VkImageMemoryBarrier syncBarrier{};
         syncBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -202,7 +409,7 @@ void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
         syncBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         syncBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         syncBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-        syncBarrier.image = swapchain_.Images()[currentImageIndex_];
+        syncBarrier.image = useSceneTarget ? sceneTarget_.colorImage : swapchain_.Images()[currentImageIndex_];
         syncBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         syncBarrier.subresourceRange.baseMipLevel   = 0;
         syncBarrier.subresourceRange.levelCount     = 1;
@@ -211,9 +418,66 @@ void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
         vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &syncBarrier);
     }
 
+    if (useSceneTarget) {
+        // Transition offscreen target from whatever it was (usually SHADER_READ_ONLY_OPTIMAL or UNDEFINED) to COLOR_ATTACHMENT_OPTIMAL
+        VkImageMemoryBarrier transitionBarrier{};
+        transitionBarrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        transitionBarrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; // We don't care about previous contents before clearing
+        transitionBarrier.newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        transitionBarrier.srcAccessMask       = 0;
+        transitionBarrier.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        transitionBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        transitionBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        transitionBarrier.image               = sceneTarget_.colorImage;
+        transitionBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        transitionBarrier.subresourceRange.baseMipLevel   = 0;
+        transitionBarrier.subresourceRange.levelCount     = 1;
+        transitionBarrier.subresourceRange.baseArrayLayer = 0;
+        transitionBarrier.subresourceRange.layerCount     = 1;
+
+        if (!clearColor) {
+            transitionBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        }
+
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &transitionBarrier);
+        
+        // Depth barrier
+        VkImageMemoryBarrier depthBarrier{};
+        depthBarrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        depthBarrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout           = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthBarrier.srcAccessMask       = 0;
+        depthBarrier.dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.image               = sceneTarget_.depthImage;
+        depthBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthBarrier.subresourceRange.baseMipLevel   = 0;
+        depthBarrier.subresourceRange.levelCount     = 1;
+        depthBarrier.subresourceRange.baseArrayLayer = 0;
+        depthBarrier.subresourceRange.layerCount     = 1;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 0, nullptr, 1, &depthBarrier);
+    } else if (!isUiPass) {
+        // Depth barrier for swapchain in runtime mode
+        VkImageMemoryBarrier depthBarrier{};
+        depthBarrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        depthBarrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout           = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthBarrier.srcAccessMask       = 0;
+        depthBarrier.dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.image               = swapchainDepthImages_[currentImageIndex_];
+        depthBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthBarrier.subresourceRange.baseMipLevel   = 0;
+        depthBarrier.subresourceRange.levelCount     = 1;
+        depthBarrier.subresourceRange.baseArrayLayer = 0;
+        depthBarrier.subresourceRange.layerCount     = 1;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 0, nullptr, 1, &depthBarrier);
+    }
+
     VkRenderingAttachmentInfo colorAttachment{};
     colorAttachment.sType            = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachment.imageView        = swapchain_.ImageViews()[currentImageIndex_];
     colorAttachment.imageLayout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachment.loadOp           = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
@@ -221,16 +485,64 @@ void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    renderingInfo.renderArea           = {{0, 0}, swapchain_.Extent()};
     renderingInfo.layerCount           = 1;
     renderingInfo.colorAttachmentCount = 1;
-    renderingInfo.pColorAttachments    = &colorAttachment;
+    
+    VkRenderingAttachmentInfo depthAttachment{};
+    depthAttachment.sType            = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    depthAttachment.imageLayout      = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthAttachment.loadOp           = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+    depthAttachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.clearValue.depthStencil = {1.0f, 0}; 
+
+    if (useSceneTarget) {
+        // Render to offscreen scene target
+        colorAttachment.imageView        = sceneTarget_.colorView;
+        renderingInfo.renderArea         = {{0, 0}, {sceneTarget_.width, sceneTarget_.height}};
+
+        depthAttachment.imageView        = sceneTarget_.depthView;
+        renderingInfo.pDepthAttachment   = &depthAttachment;
+    } else {
+        // Render directly to swapchain
+        colorAttachment.imageView        = swapchain_.ImageViews()[currentImageIndex_];
+        renderingInfo.renderArea         = {{0, 0}, swapchain_.Extent()};
+        
+        if (!isUiPass) {
+            depthAttachment.imageView        = swapchainDepthViews_[currentImageIndex_];
+            renderingInfo.pDepthAttachment   = &depthAttachment;
+        }
+    }
+
+    renderingInfo.pColorAttachments = &colorAttachment;
 
     vkCmdBeginRendering(cmd, &renderingInfo);
 }
 
 void Renderer::EndRendering(VkCommandBuffer cmd) {
     vkCmdEndRendering(cmd);
+
+    bool isUiPass = (cmd == uiCommandBuffers_[currentFrame_]);
+    bool useSceneTarget = !isUiPass && (sceneTarget_.colorImage != VK_NULL_HANDLE);
+
+    // If we just rendered to the offscreen target, transition it to SHADER_READ_ONLY_OPTIMAL for ImGui
+    if (useSceneTarget) {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
+        barrier.newLayout           = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask       = VK_ACCESS_SHADER_READ_BIT;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image               = sceneTarget_.colorImage;
+        barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel   = 0;
+        barrier.subresourceRange.levelCount     = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount     = 1;
+
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    }
 }
 
 void Renderer::EndFrame() {
@@ -278,7 +590,7 @@ void Renderer::EndFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores    = signalSems;
 
-    if (vkQueueSubmit(Lgt::Vulkan::g_Context.device->GraphicsQueue(), 1, &submitInfo, inFlightFences_[currentFrame_]) !=
+    if (vkQueueSubmit(Lgt::Vulkan::g_Device->GraphicsQueue(), 1, &submitInfo, inFlightFences_[currentFrame_]) !=
         VK_SUCCESS)
         throw std::runtime_error("vkQueueSubmit failed");
 
@@ -291,7 +603,7 @@ void Renderer::EndFrame() {
     presentInfo.pSwapchains        = swapchains;
     presentInfo.pImageIndices      = &currentImageIndex_;
 
-    auto result = vkQueuePresentKHR(Lgt::Vulkan::g_Context.device->PresentQueue(), &presentInfo);
+    auto result = vkQueuePresentKHR(Lgt::Vulkan::g_Device->PresentQueue(), &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized_) {
         framebufferResized_ = false;
         recreateSwapchain();
@@ -306,8 +618,8 @@ void Renderer::createTestResources() {
     auto vertCode = readFile("shaders/shader.vert.spv");
     auto fragCode = readFile("shaders/shader.frag.spv");
 
-    VkShaderModule vertModule = createShaderModule(Lgt::Vulkan::g_Context.device, vertCode);
-    VkShaderModule fragModule = createShaderModule(Lgt::Vulkan::g_Context.device, fragCode);
+    VkShaderModule vertModule = createShaderModule(Lgt::Vulkan::g_Device, vertCode);
+    VkShaderModule fragModule = createShaderModule(Lgt::Vulkan::g_Device, fragCode);
 
     VkPipelineShaderStageCreateInfo vertStage{};
     vertStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -340,7 +652,7 @@ void Renderer::createTestResources() {
     rasterizer.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth   = 1.0f;
-    rasterizer.cullMode    = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode    = VK_CULL_MODE_NONE;
     rasterizer.frontFace   = VK_FRONT_FACE_CLOCKWISE;
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -366,9 +678,19 @@ void Renderer::createTestResources() {
     pipelineflags.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO;
     pipelineflags.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT;
 
+    // TEMPORARY CODE: Hardcoded depth stencil state for the initial pipeline
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable       = VK_TRUE;
+    depthStencil.depthWriteEnable      = VK_TRUE;
+    depthStencil.depthCompareOp        = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable     = VK_FALSE;
+
     VkPipelineRenderingCreateInfo renderingInfo{};
-    renderingInfo.sType                = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    renderingInfo.colorAttachmentCount = 1;
+    renderingInfo.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount    = 1;
+    renderingInfo.depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT;
 
     VkFormat colorFormat                  = swapchain_.Format();
     renderingInfo.pColorAttachmentFormats = &colorFormat;
@@ -387,6 +709,7 @@ void Renderer::createTestResources() {
     pipelineInfo.pViewportState      = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState   = &multisampling;
+    pipelineInfo.pDepthStencilState  = &depthStencil;
     pipelineInfo.pColorBlendState    = &colorBlend;
     pipelineInfo.pDynamicState       = &dynamicState;
 
@@ -394,19 +717,19 @@ void Renderer::createTestResources() {
     pipelineInfo.renderPass = VK_NULL_HANDLE;
 
     if (vkCreateGraphicsPipelines(
-            Lgt::Vulkan::g_Context.device->Logical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &TraingleGfxPipeline_) !=
+            Lgt::Vulkan::g_Device->Logical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &TraingleGfxPipeline_) !=
         VK_SUCCESS)
         throw std::runtime_error("vkCreateGraphicsPipelines failed");
 
-    vkDestroyShaderModule(Lgt::Vulkan::g_Context.device->Logical(), fragModule, nullptr);
-    vkDestroyShaderModule(Lgt::Vulkan::g_Context.device->Logical(), vertModule, nullptr);
+    vkDestroyShaderModule(Lgt::Vulkan::g_Device->Logical(), fragModule, nullptr);
+    vkDestroyShaderModule(Lgt::Vulkan::g_Device->Logical(), vertModule, nullptr);
 
     // vertex buffer -- ssbo
 
     float positions[6] = {0.0, -0.5, 0.5, 0.5, -0.5, 0.5};
     vertSSBO_          = CreateSSBO(sizeof(positions));
     auto* dstgpubuffer = g_Buffers.Get(vertSSBO_);
-    vertGpuIndex       = g_Context.resourceHeap->AllocateSSBO(vertSSBO_);
+    vertGpuIndex       = g_ResourceHeap->AllocateSSBO(vertSSBO_);
 
     Buffer srcBuffer{};
 
@@ -414,11 +737,11 @@ void Renderer::createTestResources() {
     bufferci.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferci.size        = 24;
     bufferci.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    bufferci.sharingMode = Vulkan::g_Context.device->GraphicsFamily() == Vulkan::g_Context.device->TransferFamily()
+    bufferci.sharingMode = Vulkan::g_Device->GraphicsFamily() == Vulkan::g_Device->TransferFamily()
                                ? VK_SHARING_MODE_CONCURRENT
                                : VK_SHARING_MODE_EXCLUSIVE;
 
-    uint32_t queuefamilyindices[]  = {Vulkan::g_Context.device->GraphicsFamily(), Vulkan::g_Context.device->TransferFamily()};
+    uint32_t queuefamilyindices[]  = {Vulkan::g_Device->GraphicsFamily(), Vulkan::g_Device->TransferFamily()};
     bufferci.queueFamilyIndexCount = 2;
     bufferci.pQueueFamilyIndices   = queuefamilyindices;
 
@@ -426,19 +749,19 @@ void Renderer::createTestResources() {
     allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-    LGT_ASSERT(Vulkan::g_Context.allocator->createBuffer(bufferci, allocInfo, srcBuffer.buffer, srcBuffer.allocation), "");
+    LGT_ASSERT(Vulkan::g_Allocator->createBuffer(bufferci, allocInfo, srcBuffer.buffer, srcBuffer.allocation), "");
 
-    void* ptr = Vulkan::g_Context.allocator->map(srcBuffer.allocation);
+    void* ptr = Vulkan::g_Allocator->map(srcBuffer.allocation);
     memcpy(ptr, positions, 24);
-    Vulkan::g_Context.allocator->unmap(srcBuffer.allocation);
+    Vulkan::g_Allocator->unmap(srcBuffer.allocation);
 
     VkBufferCopy buffercpy{};
     buffercpy.dstOffset = 0;
     buffercpy.srcOffset = 0;
     buffercpy.size      = 24;
 
-    vkWaitForFences(Vulkan::g_Context.device->Logical(), 1, &inFlightFences_[0], VK_TRUE, UINT64_MAX);
-    vkResetFences(Lgt::Vulkan::g_Context.device->Logical(), 1, &inFlightFences_[currentFrame_]);
+    vkWaitForFences(Vulkan::g_Device->Logical(), 1, &inFlightFences_[0], VK_TRUE, UINT64_MAX);
+    vkResetFences(Lgt::Vulkan::g_Device->Logical(), 1, &inFlightFences_[currentFrame_]);
 
     VkCommandBufferBeginInfo cmdBeginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     vkBeginCommandBuffer(commandBuffers_[0], &cmdBeginInfo);
@@ -450,11 +773,11 @@ void Renderer::createTestResources() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers    = &commandBuffers_[0];
 
-    if (vkQueueSubmit(Lgt::Vulkan::g_Context.device->GraphicsQueue(), 1, &submitInfo, inFlightFences_[0]) != VK_SUCCESS)
+    if (vkQueueSubmit(Lgt::Vulkan::g_Device->GraphicsQueue(), 1, &submitInfo, inFlightFences_[0]) != VK_SUCCESS)
         throw std::runtime_error("vkQueueSubmit failed");
 
-    vkQueueWaitIdle(Lgt::Vulkan::g_Context.device->GraphicsQueue());
-    Vulkan::g_Context.allocator->destroyBuffer(srcBuffer.buffer, srcBuffer.allocation);
+    vkQueueWaitIdle(Lgt::Vulkan::g_Device->GraphicsQueue());
+    Vulkan::g_Allocator->destroyBuffer(srcBuffer.buffer, srcBuffer.allocation);
 }
 
 void Renderer::framebufferResizeCallback(GLFWwindow* w, int /*width*/, int /*height*/) {
@@ -466,9 +789,9 @@ void Renderer::createCommandPool() {
     VkCommandPoolCreateInfo ci{};
     ci.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     ci.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    ci.queueFamilyIndex = Lgt::Vulkan::g_Context.device->GraphicsFamily();
+    ci.queueFamilyIndex = Lgt::Vulkan::g_Device->GraphicsFamily();
 
-    if (vkCreateCommandPool(Lgt::Vulkan::g_Context.device->Logical(), &ci, nullptr, &commandPool_) != VK_SUCCESS)
+    if (vkCreateCommandPool(Lgt::Vulkan::g_Device->Logical(), &ci, nullptr, &commandPool_) != VK_SUCCESS)
         throw std::runtime_error("vkCreateCommandPool failed");
 }
 
@@ -482,10 +805,10 @@ void Renderer::createCommandBuffers() {
     allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers_.size());
 
-    if (vkAllocateCommandBuffers(Lgt::Vulkan::g_Context.device->Logical(), &allocInfo, commandBuffers_.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(Lgt::Vulkan::g_Device->Logical(), &allocInfo, commandBuffers_.data()) != VK_SUCCESS)
         throw std::runtime_error("vkAllocateCommandBuffers failed");
         
-    if (vkAllocateCommandBuffers(Lgt::Vulkan::g_Context.device->Logical(), &allocInfo, uiCommandBuffers_.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(Lgt::Vulkan::g_Device->Logical(), &allocInfo, uiCommandBuffers_.data()) != VK_SUCCESS)
         throw std::runtime_error("vkAllocateCommandBuffers failed");
 }
 
@@ -499,9 +822,9 @@ void Renderer::createSyncObjects() {
     fenceCI.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        if (vkCreateSemaphore(Lgt::Vulkan::g_Context.device->Logical(), &semCI, nullptr, &imageAvailableSems_[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(Lgt::Vulkan::g_Context.device->Logical(), &semCI, nullptr, &renderFinishedSems_[i]) != VK_SUCCESS ||
-            vkCreateFence(Lgt::Vulkan::g_Context.device->Logical(), &fenceCI, nullptr, &inFlightFences_[i]) != VK_SUCCESS)
+        if (vkCreateSemaphore(Lgt::Vulkan::g_Device->Logical(), &semCI, nullptr, &imageAvailableSems_[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(Lgt::Vulkan::g_Device->Logical(), &semCI, nullptr, &renderFinishedSems_[i]) != VK_SUCCESS ||
+            vkCreateFence(Lgt::Vulkan::g_Device->Logical(), &fenceCI, nullptr, &inFlightFences_[i]) != VK_SUCCESS)
             throw std::runtime_error("Failed to create sync objects");
     }
 }
@@ -509,7 +832,7 @@ void Renderer::createSyncObjects() {
 void Renderer::createUBOS() {
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         auto bufferHandle = CreateUBO(sizeof(FrameUBO));
-        g_Context.resourceHeap->AllocateUBO(bufferHandle);
+        g_ResourceHeap->AllocateUBO(bufferHandle);
         frameUBO_.push_back(std::move(bufferHandle));
     }
 }

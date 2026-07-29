@@ -15,15 +15,15 @@ DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHe
     bufferci.size  = size;
     bufferci.usage = VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-    vkCreateBuffer(Lgt::Vulkan::g_Context.device->Logical(), &bufferci, nullptr, &m_Buffer);
+    vkCreateBuffer(Lgt::Vulkan::g_Device->Logical(), &bufferci, nullptr, &m_Buffer);
 
     VkMemoryRequirements memReu{};
-    vkGetBufferMemoryRequirements(Lgt::Vulkan::g_Context.device->Logical(), m_Buffer, &memReu);
+    vkGetBufferMemoryRequirements(Lgt::Vulkan::g_Device->Logical(), m_Buffer, &memReu);
 
     VkMemoryAllocateInfo allocateinfo{};
     allocateinfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocateinfo.allocationSize  = memReu.size;
-    allocateinfo.memoryTypeIndex = selectMemoryType(Lgt::Vulkan::g_Context.device,
+    allocateinfo.memoryTypeIndex = selectMemoryType(Lgt::Vulkan::g_Device,
                                                     memReu.memoryTypeBits,
                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -34,28 +34,28 @@ DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHe
 
     // chaining
     allocateinfo.pNext = &flagsinfo;
-    VK_CHECK(vkAllocateMemory(Lgt::Vulkan::g_Context.device->Logical(), &allocateinfo, nullptr, &m_DeviceMemory));
-    VK_CHECK(vkBindBufferMemory(Lgt::Vulkan::g_Context.device->Logical(), m_Buffer, m_DeviceMemory, 0));
+    VK_CHECK(vkAllocateMemory(Lgt::Vulkan::g_Device->Logical(), &allocateinfo, nullptr, &m_DeviceMemory));
+    VK_CHECK(vkBindBufferMemory(Lgt::Vulkan::g_Device->Logical(), m_Buffer, m_DeviceMemory, 0));
 
     VkBufferDeviceAddressInfo addressinfo{};
     addressinfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     addressinfo.buffer = m_Buffer;
-    m_DeviceAddress    = vkGetBufferDeviceAddress(Lgt::Vulkan::g_Context.device->Logical(), &addressinfo);
+    m_DeviceAddress    = vkGetBufferDeviceAddress(Lgt::Vulkan::g_Device->Logical(), &addressinfo);
     LIGHTVK_INFO("Created DescriptorHeap -size : {} bytes -BufferDeviceAdder : {}", m_Size, m_DeviceAddress);
 }
 
 DescriptorHeap::~DescriptorHeap() {
     if (m_Buffer != VK_NULL_HANDLE)
-        vkDestroyBuffer(Lgt::Vulkan::g_Context.device->Logical(), m_Buffer, nullptr);
+        vkDestroyBuffer(Lgt::Vulkan::g_Device->Logical(), m_Buffer, nullptr);
 
     if (m_DeviceMemory != VK_NULL_HANDLE)
-        vkFreeMemory(Lgt::Vulkan::g_Context.device->Logical(), m_DeviceMemory, nullptr);
+        vkFreeMemory(Lgt::Vulkan::g_Device->Logical(), m_DeviceMemory, nullptr);
 }
 
 uint32_t DescriptorHeap::AllocateSSBO(const BufferHandle& buffer) {
-    m_CurrentOffset   = AlignUp(m_CurrentOffset, Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorAlignment);
-    uint32_t gpuIndex = m_CurrentOffset / Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize;
-    LGT_ASSERT(m_CurrentOffset + Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
+    m_CurrentOffset   = AlignUp(m_CurrentOffset, Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorAlignment);
+    uint32_t gpuIndex = m_CurrentOffset / Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+    LGT_ASSERT(m_CurrentOffset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
                "Heap OverFlow");
 
     auto* gpubuffer = g_Buffers.Get(buffer);
@@ -63,7 +63,7 @@ uint32_t DescriptorHeap::AllocateSSBO(const BufferHandle& buffer) {
 
     VkDeviceAddressRangeEXT deviceAdderRange{};
     deviceAdderRange.size = gpubuffer->size;
-    LGT_ASSERT(gpubuffer->deviceAddress % Vulkan::g_Context.device->Limits().minStorageBufferOffsetAlignment == 0,
+    LGT_ASSERT(gpubuffer->deviceAddress % Vulkan::g_Device->Limits().minStorageBufferOffsetAlignment == 0,
                "data->pAddressRange→address must be a multiple of minStorageBufferOffsetAlignment");
     deviceAdderRange.address = gpubuffer->deviceAddress;
 
@@ -76,25 +76,25 @@ uint32_t DescriptorHeap::AllocateSSBO(const BufferHandle& buffer) {
     descInfo.data  = descData;
 
     void* ptr;
-    vkMapMemory(Vulkan::g_Context.device->Logical(), m_DeviceMemory, 0, m_Size, 0, &ptr);
+    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, m_Size, 0, &ptr);
 
     VkHostAddressRangeEXT hostRange{};
     hostRange.address = (uint8_t*)ptr + m_CurrentOffset;
-    hostRange.size    = Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize;
+    hostRange.size    = Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
-    vkWriteResourceDescriptorsEXT(Vulkan::g_Context.device->Logical(), 1, &descInfo, &hostRange);
-    vkUnmapMemory(Vulkan::g_Context.device->Logical(), m_DeviceMemory);
+    vkWriteResourceDescriptorsEXT(Vulkan::g_Device->Logical(), 1, &descInfo, &hostRange);
+    vkUnmapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory);
 
-    m_CurrentOffset += Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize;
+    m_CurrentOffset += Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
     LIGHTVK_INFO("DescriptorHeap : Allocated SSBO ,  GPU index : {}", gpuIndex);
     return gpuIndex;
 }
 
 uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
-    m_CurrentOffset   = AlignUp(m_CurrentOffset, Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorAlignment);
-    uint32_t gpuIndex = m_CurrentOffset / Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize;
-    LGT_ASSERT(m_CurrentOffset + Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
+    m_CurrentOffset   = AlignUp(m_CurrentOffset, Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorAlignment);
+    uint32_t gpuIndex = m_CurrentOffset / Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+    LGT_ASSERT(m_CurrentOffset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
                "Heap OverFlow");
 
     auto* gpubuffer = g_Buffers.Get(buffer);
@@ -102,7 +102,7 @@ uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
 
     VkDeviceAddressRangeEXT deviceAdderRange{};
     deviceAdderRange.size = gpubuffer->size;
-    LGT_ASSERT(gpubuffer->deviceAddress % Vulkan::g_Context.device->Limits().minUniformBufferOffsetAlignment == 0,
+    LGT_ASSERT(gpubuffer->deviceAddress % Vulkan::g_Device->Limits().minUniformBufferOffsetAlignment == 0,
                "data->pAddressRange→address must be a multiple of minUniformBufferOffsetAlignment");
     deviceAdderRange.address = gpubuffer->deviceAddress;
 
@@ -115,16 +115,16 @@ uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
     descInfo.data  = descData;
 
     void* ptr;
-    vkMapMemory(Vulkan::g_Context.device->Logical(), m_DeviceMemory, 0, m_Size, 0, &ptr);
+    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, m_Size, 0, &ptr);
 
     VkHostAddressRangeEXT hostRange{};
     hostRange.address = (uint8_t*)ptr + m_CurrentOffset;
-    hostRange.size    = Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize;
+    hostRange.size    = Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
-    vkWriteResourceDescriptorsEXT(Vulkan::g_Context.device->Logical(), 1, &descInfo, &hostRange);
-    vkUnmapMemory(Vulkan::g_Context.device->Logical(), m_DeviceMemory);
+    vkWriteResourceDescriptorsEXT(Vulkan::g_Device->Logical(), 1, &descInfo, &hostRange);
+    vkUnmapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory);
 
-    m_CurrentOffset += Vulkan::g_Context.device->DescriptorHeapProperties().bufferDescriptorSize;
+    m_CurrentOffset += Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
     LIGHTVK_INFO("DescriptorHeap : Allocated UBO ,  GPU index : {}", gpuIndex);
     return gpuIndex;

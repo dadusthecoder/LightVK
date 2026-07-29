@@ -3,35 +3,38 @@
 
 namespace Lgt::Gpu {
 
-Context                              g_Context;
+Renderer*       g_Renderer = nullptr;
+DescriptorHeap* g_ResourceHeap = nullptr;
+DescriptorHeap* g_SamplerHeap = nullptr;
+
 ResourcePool<Texture, TextureHandle> g_Textures;
 ResourcePool<Buffer, BufferHandle>   g_Buffers;
 
-void Context::Init(GLFWwindow* window) {
-    resourceHeap =
-        new DescriptorHeap(MAX_RESOURCES * 32 + Vulkan::g_Context.device->DescriptorHeapProperties().minResourceHeapReservedRange);
-    samplerHeap =
-        new DescriptorHeap(MAX_SAMPLERS * 16 + Vulkan::g_Context.device->DescriptorHeapProperties().minSamplerHeapReservedRange);
-    renderer = new Renderer();
-    renderer->Init(window);
+void Init(GLFWwindow* window) {
+    g_ResourceHeap =
+        new DescriptorHeap(MAX_RESOURCES * 32 + Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange);
+    g_SamplerHeap =
+        new DescriptorHeap(MAX_SAMPLERS * 16 + Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange);
+    g_Renderer = new Renderer();
+    g_Renderer->Init(window);
 }
 
-void Context::Shutdown() {
-    vkDeviceWaitIdle(Vulkan::g_Context.device->Logical());
+void Shutdown() {
+    vkDeviceWaitIdle(Vulkan::g_Device->Logical());
 
     g_Buffers.ForEach([&](Gpu::Buffer& buffer) {
         if (buffer.mapped)
-            Vulkan::g_Context.allocator->unmap(buffer.allocation);
+            Vulkan::g_Allocator->unmap(buffer.allocation);
 
-        Vulkan::g_Context.allocator->destroyBuffer(buffer.buffer, buffer.allocation);
+        Vulkan::g_Allocator->destroyBuffer(buffer.buffer, buffer.allocation);
     });
 
     g_Buffers.Clear();
 
-    delete resourceHeap;
-    delete samplerHeap;
+    delete g_ResourceHeap;
+    delete g_SamplerHeap;
 
-    renderer->ShutDown();
+    g_Renderer->ShutDown();
 }
 
 } // namespace Lgt::Gpu

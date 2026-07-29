@@ -30,7 +30,7 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
     pool_info.poolSizeCount                 = (uint32_t)IM_ARRAYSIZE(pool_sizes);
     pool_info.pPoolSizes                    = pool_sizes;
 
-    if (vkCreateDescriptorPool(Vulkan::g_Context.device->Logical(), &pool_info, nullptr, &descriptorPool_) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(Vulkan::g_Device->Logical(), &pool_info, nullptr, &descriptorPool_) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool for ImGui!");
     }
 
@@ -38,7 +38,8 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable keyboard controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable docking
 
     ImGui::StyleColorsDark();
 
@@ -46,11 +47,11 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
 
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.ApiVersion                = VK_API_VERSION_1_3;
-    init_info.Instance                  = Vulkan::g_Context.instance->Handle();
-    init_info.PhysicalDevice            = Vulkan::g_Context.device->Physical();
-    init_info.Device                    = Vulkan::g_Context.device->Logical();
-    init_info.QueueFamily               = Vulkan::g_Context.device->GraphicsFamily();
-    init_info.Queue                     = Vulkan::g_Context.device->GraphicsQueue();
+    init_info.Instance                  = Vulkan::g_Instance->Handle();
+    init_info.PhysicalDevice            = Vulkan::g_Device->Physical();
+    init_info.Device                    = Vulkan::g_Device->Logical();
+    init_info.QueueFamily               = Vulkan::g_Device->GraphicsFamily();
+    init_info.Queue                     = Vulkan::g_Device->GraphicsQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
     init_info.DescriptorPool            = descriptorPool_;
     init_info.MinImageCount             = 3;
@@ -84,7 +85,7 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
     LIGHTVK_INFO("Queue = {}", (void*)init_info.Queue);
     LIGHTVK_INFO("vkGetDeviceProcAddr = {}", (void*)vkGetDeviceProcAddr);
 
-    auto p = vkGetDeviceProcAddr(Vulkan::g_Context.device->Logical(), "vkCmdBeginRenderingKHR");
+    auto p = vkGetDeviceProcAddr(Vulkan::g_Device->Logical(), "vkCmdBeginRenderingKHR");
 
     LIGHTVK_INFO("vkCmdBeginRenderingKHR = {}", (void*)p);
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -92,7 +93,7 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
     bool ok = ImGui_ImplVulkan_LoadFunctions(
         VK_API_VERSION_1_4,
         [](const char* name, void*) -> PFN_vkVoidFunction {
-            auto p = vkGetInstanceProcAddr(Vulkan::g_Context.instance->Handle(), name);
+            auto p = vkGetInstanceProcAddr(Vulkan::g_Instance->Handle(), name);
             std::cout << "Found it" << std::endl;
             return p;
         },
@@ -116,14 +117,14 @@ void ImGuiLayer::EndFrame(VkCommandBuffer cmd) {
 }
 
 void ImGuiLayer::Shutdown() {
-    if (Vulkan::g_Context.device && Vulkan::g_Context.device->Logical()) {
-        vkDeviceWaitIdle(Vulkan::g_Context.device->Logical());
+    if (Vulkan::g_Device && Vulkan::g_Device->Logical()) {
+        vkDeviceWaitIdle(Vulkan::g_Device->Logical());
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
         if (descriptorPool_ != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(Vulkan::g_Context.device->Logical(), descriptorPool_, nullptr);
+            vkDestroyDescriptorPool(Vulkan::g_Device->Logical(), descriptorPool_, nullptr);
             descriptorPool_ = VK_NULL_HANDLE;
         }
     }

@@ -29,7 +29,10 @@ layout(std430, descriptor_heap) buffer IndexBuffer {
 indexHeaps[];
 
 layout(std140, descriptor_heap) uniform UBO {
-    vec4 color; // Changed to vec4 to prevent CPU/GPU alignment mismatch headaches
+    vec4 viewProjCol0;
+    vec4 viewProjCol1;
+    vec4 viewProjCol2;
+    vec4 viewProjCol3;
 }
 uniformHeaps[];
 
@@ -39,6 +42,29 @@ void main() {
     uint vertexIdx = indexHeaps[pushData.indexBufferIndex].indices[gl_VertexIndex];
 
     vec3 pos    = vertexHeaps[pushData.vertexBufferIndex].vertices[nonuniformEXT(vertexIdx)].position;
-    gl_Position = vec4(pos, 2.0);
-    fragColor   = uniformHeaps[pushData.frameIndex].color.rgb;
+    
+    // Transform normal into world space (assuming uniform scale for simplicity)
+    vec3 normal = mat3(pushData.transform) * vertexHeaps[pushData.vertexBufferIndex].vertices[nonuniformEXT(vertexIdx)].normal;
+    normal = normalize(normal);
+
+    // Reconstruct the view-projection matrix column by column from the descriptor heap
+    // to bypass the driver TDR bug reading mat4 directly from UBO arrays
+    mat4 viewProj = mat4(
+        uniformHeaps[pushData.frameIndex].viewProjCol0,
+        uniformHeaps[pushData.frameIndex].viewProjCol1,
+        uniformHeaps[pushData.frameIndex].viewProjCol2,
+        uniformHeaps[pushData.frameIndex].viewProjCol3
+    );
+
+    gl_Position = viewProj * pushData.transform * vec4(pos, 1.0);
+
+    // Basic directional lighting for visual feedback
+    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
+    float ndotl   = max(dot(normal, lightDir), 0.0);
+    
+    // Add a checkerboard pattern using the object-space position
+    float checker = mod(floor(pos.x * 2.0) + floor(pos.y * 2.0) + floor(pos.z * 2.0), 2.0);
+    vec3 baseColor = mix(vec3(0.8, 0.2, 0.2), vec3(0.2, 0.2, 0.8), checker); // Red and blue checkerboard
+
+    fragColor     = baseColor * (ndotl * 0.7 + 0.3); // ambient + diffuse
 }

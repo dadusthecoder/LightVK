@@ -32,5 +32,5 @@ VkDeviceAddress getBufferDeviceAddress(const VkBuffer& buffer) {
     VkBufferDeviceAddressInfo adderInfo{};
     adderInfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     adderInfo.buffer = buffer;
-    return vkGetBufferDeviceAddress(Lgt::Vulkan::g_Context.device->Logical(), &adderInfo);
+    return vkGetBufferDeviceAddress(Lgt::Vulkan::g_Device->Logical(), &adderInfo);
 }

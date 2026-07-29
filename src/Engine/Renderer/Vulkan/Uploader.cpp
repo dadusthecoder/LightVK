@@ -7,8 +7,8 @@ namespace Lgt::Vulkan {
 
 VulkanLoadTimeStagingUploader::VulkanLoadTimeStagingUploader() {
 
-    auto     device         = g_Context.device->Logical();
-    uint32_t transferFamily = g_Context.device->TransferFamily();
+    auto     device         = g_Device->Logical();
+    uint32_t transferFamily = g_Device->TransferFamily();
 
     // Command pool on transfer queue
     VkCommandPoolCreateInfo poolInfo{};
@@ -32,7 +32,7 @@ VulkanLoadTimeStagingUploader::VulkanLoadTimeStagingUploader() {
 }
 
 VulkanLoadTimeStagingUploader::~VulkanLoadTimeStagingUploader() {
-    auto device = g_Context.device->Logical();
+    auto device = g_Device->Logical();
 
     if (m_Fence != VK_NULL_HANDLE)
         vkDestroyFence(device, m_Fence, nullptr);
@@ -81,7 +81,7 @@ void VulkanLoadTimeStagingUploader::Flush() {
     vmaCI.usage = VMA_MEMORY_USAGE_AUTO;
     vmaCI.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    bool ok = g_Context.allocator->createBuffer((uint32_t)m_CPUData.size(),
+    bool ok = g_Allocator->createBuffer((uint32_t)m_CPUData.size(),
                                                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                                 VMA_MEMORY_USAGE_AUTO,
                                                 vmaCI.flags,
@@ -196,11 +196,11 @@ void VulkanLoadTimeStagingUploader::Flush() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers    = &m_Cmd;
 
-    VK_CHECK(vkQueueSubmit(g_Context.device->TransferQueue(), 1, &submitInfo, m_Fence));
-    VK_CHECK(vkWaitForFences(g_Context.device->Logical(), 1, &m_Fence, VK_TRUE, UINT64_MAX));
-    VK_CHECK(vkResetFences(g_Context.device->Logical(), 1, &m_Fence));
+    VK_CHECK(vkQueueSubmit(g_Device->TransferQueue(), 1, &submitInfo, m_Fence));
+    VK_CHECK(vkWaitForFences(g_Device->Logical(), 1, &m_Fence, VK_TRUE, UINT64_MAX));
+    VK_CHECK(vkResetFences(g_Device->Logical(), 1, &m_Fence));
 
-    g_Context.allocator->destroyBuffer(stagingBuffer, stagingAlloc);
+    g_Allocator->destroyBuffer(stagingBuffer, stagingAlloc);
 
     LIGHTVK_INFO("[LoadUploader] Flush complete -> staging memory freed");
 

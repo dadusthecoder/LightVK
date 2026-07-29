@@ -9,18 +9,13 @@
 
 namespace Lgt::Vulkan {
 
-struct Context {
+extern LIGHTVK_API VulkanSurface*                 g_Surface;
+extern LIGHTVK_API VulkanInstance*                g_Instance;
+extern LIGHTVK_API VulkanDevice*                  g_Device;
+extern LIGHTVK_API VulkanAllocator*               g_Allocator;
+extern LIGHTVK_API VulkanLoadTimeStagingUploader* g_Uploader;
 
-    VulkanSurface*                 surface   = nullptr;
-    VulkanInstance*                instance  = nullptr;
-    VulkanDevice*                  device    = nullptr;
-    VulkanAllocator*               allocator = nullptr;
-    VulkanLoadTimeStagingUploader* uploader  = nullptr;
-
-    void                           Init(GLFWwindow* window);
-    void                           Shutdown();
-};
-
-extern LIGHTVK_API Context g_Context;
+void Init(GLFWwindow* window);
+void Shutdown();
 
 } // namespace Lgt::Vulkan

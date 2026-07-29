@@ -29,7 +29,7 @@ find_program(GLSLC glslc REQUIRED)
 
 # 3. Shader Compilation Logic
 set(SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/shaders")
-set(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/shaders")
+set(SHADER_BINARY_DIR "${CMAKE_BINARY_DIR}/Bin/shaders")
 
 file(GLOB SHADER_SOURCES
     "${SHADER_SOURCE_DIR}/*.vert"

@@ -12,11 +12,11 @@ BufferHandle CreateSSBO(size_t size, bool dynamic) {
         bufferci.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     bufferci.usage       |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    bufferci.sharingMode  = Vulkan::g_Context.device->GraphicsFamily() == Vulkan::g_Context.device->TransferFamily()
+    bufferci.sharingMode  = Vulkan::g_Device->GraphicsFamily() == Vulkan::g_Device->TransferFamily()
                                 ? VK_SHARING_MODE_CONCURRENT
                                 : VK_SHARING_MODE_EXCLUSIVE;
 
-    uint32_t queuefamilyindices[]  = {Vulkan::g_Context.device->GraphicsFamily(), Vulkan::g_Context.device->TransferFamily()};
+    uint32_t queuefamilyindices[]  = {Vulkan::g_Device->GraphicsFamily(), Vulkan::g_Device->TransferFamily()};
     bufferci.queueFamilyIndexCount = 2;
     bufferci.pQueueFamilyIndices   = queuefamilyindices;
 
@@ -30,7 +30,7 @@ BufferHandle CreateSSBO(size_t size, bool dynamic) {
         allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
     }
 
-    if (Vulkan::g_Context.allocator->createBuffer(bufferci, allocInfo, buffer.buffer, buffer.allocation)) {
+    if (Vulkan::g_Allocator->createBuffer(bufferci, allocInfo, buffer.buffer, buffer.allocation)) {
         buffer.deviceAddress = getBufferDeviceAddress(buffer.buffer);
         buffer.size          = size;
         LIGHTVK_INFO("Created SSBO size: {}", size);
@@ -47,11 +47,11 @@ BufferHandle CreateUBO(size_t size) {
     bufferci.size  = size;
 
     bufferci.usage       = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    bufferci.sharingMode = Vulkan::g_Context.device->GraphicsFamily() == Vulkan::g_Context.device->TransferFamily()
+    bufferci.sharingMode = Vulkan::g_Device->GraphicsFamily() == Vulkan::g_Device->TransferFamily()
                                ? VK_SHARING_MODE_CONCURRENT
                                : VK_SHARING_MODE_EXCLUSIVE;
 
-    uint32_t queuefamilyindices[]  = {Vulkan::g_Context.device->GraphicsFamily(), Vulkan::g_Context.device->TransferFamily()};
+    uint32_t queuefamilyindices[]  = {Vulkan::g_Device->GraphicsFamily(), Vulkan::g_Device->TransferFamily()};
     bufferci.queueFamilyIndexCount = 2;
     bufferci.pQueueFamilyIndices   = queuefamilyindices;
 
@@ -61,10 +61,10 @@ BufferHandle CreateUBO(size_t size) {
     allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-    if (Vulkan::g_Context.allocator->createBuffer(bufferci, allocInfo, buffer.buffer, buffer.allocation)) {
+    if (Vulkan::g_Allocator->createBuffer(bufferci, allocInfo, buffer.buffer, buffer.allocation)) {
         buffer.deviceAddress = getBufferDeviceAddress(buffer.buffer);
         buffer.size          = size;
-        buffer.mapped        = Vulkan::g_Context.allocator->map(buffer.allocation);
+        buffer.mapped        = Vulkan::g_Allocator->map(buffer.allocation);
         LIGHTVK_INFO("Created UBO size: {}", size);
         return g_Buffers.Allocate(buffer);
     }

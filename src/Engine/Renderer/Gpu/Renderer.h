@@ -23,7 +23,21 @@ struct DrawList {
 };
 
 struct FrameUBO {
-    glm::vec3 color;
+    glm::mat4 viewProj; // Camera view-projection matrix
+};
+
+struct OffscreenTarget {
+    VkImage         colorImage = VK_NULL_HANDLE;
+    VmaAllocation   colorAlloc = VK_NULL_HANDLE;
+    VkImageView     colorView  = VK_NULL_HANDLE;
+    
+    VkImage         depthImage = VK_NULL_HANDLE;
+    VmaAllocation   depthAlloc = VK_NULL_HANDLE;
+    VkImageView     depthView  = VK_NULL_HANDLE;
+
+    VkDescriptorSet imguiDescriptor = VK_NULL_HANDLE;
+
+    uint32_t width = 0, height = 0;
 };
 
 class Renderer {
@@ -32,7 +46,7 @@ public:
     void ShutDown();
     // Issues rendering commands to the command buffer.
     // NOTE: Must be called between BeginFrame() and EndFrame().
-    void Render(DrawList* list, uint32_t frameIndex);
+    void Render(DrawList* list, const glm::mat4& viewProj);
 
     // Begins dynamic rendering on the specified command buffer.
     // If clearColor is true, the attachment is cleared; otherwise it is loaded.
@@ -48,6 +62,11 @@ public:
     // Ends the frame, ends command buffers, submits queue and presents.
     void EndFrame();
 
+    void ResizeSceneTarget(uint32_t width, uint32_t height);
+    VkDescriptorSet GetSceneTexture() const { return sceneTarget_.imguiDescriptor; }
+    uint32_t GetSceneWidth() const { return sceneTarget_.width; }
+    uint32_t GetSceneHeight() const { return sceneTarget_.height; }
+
     VkCommandBuffer GetCurrentCommandBuffer() const { return commandBuffers_[currentFrame_]; }
     VkCommandBuffer GetUICommandBuffer() const { return uiCommandBuffers_[currentFrame_]; }
     VkFormat        SwapchainFormat() const { return swapchain_.Format(); }
@@ -56,12 +75,18 @@ private:
     GLFWwindow* window_ = nullptr;
 
     VulkanSwapchain swapchain_;
+    OffscreenTarget sceneTarget_;
 
     // Frame resources
     VkCommandPool                commandPool_ = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers_;
     std::vector<VkCommandBuffer> uiCommandBuffers_;
     std::vector<BufferHandle>    frameUBO_;
+    
+    // Swapchain depth buffers
+    std::vector<VkImage>         swapchainDepthImages_;
+    std::vector<VmaAllocation>   swapchainDepthAllocs_;
+    std::vector<VkImageView>     swapchainDepthViews_;
 
     // Sync
     std::vector<VkSemaphore> imageAvailableSems_;
