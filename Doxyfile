@@ -1,0 +1,17 @@
+PROJECT_NAME           = "LightVK Engine"
+OUTPUT_DIRECTORY       = docs
+INPUT                  = src
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+WARNINGS               = YES
+QUIET                  = YES
+FILE_PATTERNS          = *.h *.cpp
+EXCLUDE_PATTERNS       = */ThirdParty/*
+USE_MDFILE_AS_MAINPAGE = README.md
