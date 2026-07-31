@@ -9,6 +9,7 @@ void Editor::Init(World* world) {
     context_.world = world;
     panel_hirearchy_.Init(&context_);
     panel_viewport_.Init(&context_);
+    panel_node_editor_.Init(&context_);
 }
 
 void Editor::Update() {
@@ -34,12 +35,14 @@ void Editor::Update() {
     // Editor panels
     panel_hirearchy_.Draw();
     panel_viewport_.Draw();
+    panel_node_editor_.Draw();
     ImGui::ShowDemoWindow();
 
     ImGui::End();
 }
 
 void Editor::Shutdown() {
+    panel_node_editor_.Shutdown();
     panel_viewport_.Shutdown();
     panel_hirearchy_.Shutdown();
 }

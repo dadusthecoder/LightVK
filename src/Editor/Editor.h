@@ -3,6 +3,7 @@
 #include "Editor/Context.h"
 #include "Editor/Panels/Hierarchy.h"
 #include "Editor/Panels/Viewport.h"
+#include "Editor/Panels/NodeEditorPanel.h"
 
 struct GLFWwindow;
 
@@ -21,6 +22,7 @@ private:
     Context          context_;
     Panel::Hierarchy panel_hirearchy_;
     Panel::Viewport  panel_viewport_;
+    Panel::NodeEditorPanel panel_node_editor_;
 };
 
 } // namespace Editor

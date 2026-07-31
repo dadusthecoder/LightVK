@@ -58,7 +58,7 @@ uint32_t DescriptorHeap::AllocateSSBO(const BufferHandle& buffer) {
     LGT_ASSERT(m_CurrentOffset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
                "Heap OverFlow");
 
-    auto* gpubuffer = g_Buffers.Get(buffer);
+    auto* gpubuffer = Resources->GetBuffer(buffer);
     LGT_ASSERT(gpubuffer, "");
 
     VkDeviceAddressRangeEXT deviceAdderRange{};
@@ -97,7 +97,7 @@ uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
     LGT_ASSERT(m_CurrentOffset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
                "Heap OverFlow");
 
-    auto* gpubuffer = g_Buffers.Get(buffer);
+    auto* gpubuffer = Resources->GetBuffer(buffer);
     LGT_ASSERT(gpubuffer, "");
 
     VkDeviceAddressRangeEXT deviceAdderRange{};

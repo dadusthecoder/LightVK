@@ -8,7 +8,7 @@
 #include "Renderer.h"
 
 namespace Lgt::Gpu {
-void Renderer::Init(GLFWwindow* window) {
+void RendererClass::Init(GLFWwindow* window) {
 
     window_ = window;
     glfwSetWindowUserPointer(window_, this);
@@ -37,10 +37,10 @@ void Renderer::Init(GLFWwindow* window) {
         imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
-        VkImage image;
+        VkImage       image;
         VmaAllocation alloc;
         Vulkan::g_Allocator->createImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, 0, image, alloc);
-        
+
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image                           = image;
@@ -51,10 +51,10 @@ void Renderer::Init(GLFWwindow* window) {
         viewInfo.subresourceRange.levelCount     = 1;
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount     = 1;
-        
+
         VkImageView view;
         vkCreateImageView(Vulkan::g_Device->Logical(), &viewInfo, nullptr, &view);
-        
+
         swapchainDepthImages_.push_back(image);
         swapchainDepthAllocs_.push_back(alloc);
         swapchainDepthViews_.push_back(view);
@@ -68,7 +68,7 @@ void Renderer::Init(GLFWwindow* window) {
     createTestResources();
 }
 
-void Renderer::ShutDown() {
+void RendererClass::ShutDown() {
     vkDeviceWaitIdle(Vulkan::g_Device->Logical());
 
     if (sceneTarget_.colorImage != VK_NULL_HANDLE) {
@@ -103,7 +103,7 @@ void Renderer::ShutDown() {
     vkDestroyCommandPool(Lgt::Vulkan::g_Device->Logical(), commandPool_, nullptr);
 }
 
-void Renderer::recreateSwapchain() {
+void RendererClass::recreateSwapchain() {
     int w = 0, h = 0;
     glfwGetFramebufferSize(window_, &w, &h);
     while (w == 0 || h == 0) {
@@ -111,7 +111,7 @@ void Renderer::recreateSwapchain() {
         glfwWaitEvents();
     }
     vkDeviceWaitIdle(Lgt::Vulkan::g_Device->Logical());
-    
+
     for (size_t i = 0; i < swapchainDepthImages_.size(); ++i) {
         vkDestroyImageView(Vulkan::g_Device->Logical(), swapchainDepthViews_[i], nullptr);
         Vulkan::g_Allocator->destroyImage(swapchainDepthImages_[i], swapchainDepthAllocs_[i]);
@@ -138,10 +138,10 @@ void Renderer::recreateSwapchain() {
         imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
-        VkImage image;
+        VkImage       image;
         VmaAllocation alloc;
         Vulkan::g_Allocator->createImage(imageInfo, VMA_MEMORY_USAGE_GPU_ONLY, 0, image, alloc);
-        
+
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image                           = image;
@@ -152,20 +152,20 @@ void Renderer::recreateSwapchain() {
         viewInfo.subresourceRange.levelCount     = 1;
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount     = 1;
-        
+
         VkImageView view;
         vkCreateImageView(Vulkan::g_Device->Logical(), &viewInfo, nullptr, &view);
-        
+
         swapchainDepthImages_.push_back(image);
         swapchainDepthAllocs_.push_back(alloc);
         swapchainDepthViews_.push_back(view);
     }
 }
 
-void Renderer::Render(DrawList* list, const glm::mat4& viewProj) {
+void RendererClass::Render(DrawList* list, const glm::mat4& viewProj) {
 
     // Upload camera view-projection matrix to per-frame UBO
-    auto* ubo = g_Buffers.Get(frameUBO_[currentFrame_]);
+    auto* ubo = Resources->GetBuffer(frameUBO_[currentFrame_]);
     LGT_ASSERT(ubo, "");
     FrameUBO ubodata{viewProj};
     memcpy(ubo->mapped, &ubodata, sizeof(FrameUBO));
@@ -194,7 +194,7 @@ void Renderer::Render(DrawList* list, const glm::mat4& viewProj) {
     scissor.extent = {targetWidth, targetHeight};
 
     vkCmdSetScissor(cmd, 0, 1, &scissor);
-    
+
     BeginRendering(cmd, true);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TraingleGfxPipeline_);
 
@@ -217,7 +217,7 @@ void Renderer::Render(DrawList* list, const glm::mat4& viewProj) {
     EndRendering(cmd);
 }
 
-bool Renderer::BeginFrame(uint32_t frameindex) {
+bool RendererClass::BeginFrame(uint32_t frameindex) {
     currentFrame_ = frameindex;
 
     vkWaitForFences(Vulkan::g_Device->Logical(), 1, &inFlightFences_[currentFrame_], VK_TRUE, UINT64_MAX);
@@ -240,26 +240,26 @@ bool Renderer::BeginFrame(uint32_t frameindex) {
 
     // resource heap bind info
     VkDeviceAddressRangeEXT resourceDeviceAdderRange{};
-    resourceDeviceAdderRange.size    = g_ResourceHeap->Size();
-    resourceDeviceAdderRange.address = g_ResourceHeap->BufferAddress();
+    resourceDeviceAdderRange.size    = ResourceHeap->Size();
+    resourceDeviceAdderRange.address = ResourceHeap->BufferAddress();
 
     VkBindHeapInfoEXT resourceBind{};
     resourceBind.sType     = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
     resourceBind.heapRange = resourceDeviceAdderRange;
     resourceBind.reservedRangeOffset =
-        g_ResourceHeap->Size() - Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
+        ResourceHeap->Size() - Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
     resourceBind.reservedRangeSize = Lgt::Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
 
     // smapler heap bind info
     VkDeviceAddressRangeEXT samplerDeviceAdderRange{};
-    samplerDeviceAdderRange.size    = g_SamplerHeap->Size();
-    samplerDeviceAdderRange.address = g_SamplerHeap->BufferAddress();
+    samplerDeviceAdderRange.size    = SamplerHeap->Size();
+    samplerDeviceAdderRange.address = SamplerHeap->BufferAddress();
 
     VkBindHeapInfoEXT samplerBind{};
     samplerBind.sType     = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
     samplerBind.heapRange = samplerDeviceAdderRange;
     samplerBind.reservedRangeOffset =
-        g_SamplerHeap->Size() - Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
+        SamplerHeap->Size() - Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
     samplerBind.reservedRangeSize = Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
 
     VkCommandBuffer cmd = commandBuffers_[currentFrame_];
@@ -309,7 +309,7 @@ bool Renderer::BeginFrame(uint32_t frameindex) {
     return true;
 }
 
-void Renderer::ResizeSceneTarget(uint32_t width, uint32_t height) {
+void RendererClass::ResizeSceneTarget(uint32_t width, uint32_t height) {
     if (sceneTarget_.width == width && sceneTarget_.height == height)
         return;
 
@@ -398,37 +398,47 @@ void Renderer::ResizeSceneTarget(uint32_t width, uint32_t height) {
     sceneTarget_.imguiDescriptor = ImGui_ImplVulkan_AddTexture(sceneTarget_.colorView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
-    bool isUiPass = (cmd == uiCommandBuffers_[currentFrame_]);
+void RendererClass::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
+    bool isUiPass       = (cmd == uiCommandBuffers_[currentFrame_]);
     bool useSceneTarget = !isUiPass && (sceneTarget_.colorImage != VK_NULL_HANDLE);
 
     if (!clearColor) {
         VkImageMemoryBarrier syncBarrier{};
-        syncBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        syncBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        syncBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        syncBarrier.sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        syncBarrier.oldLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        syncBarrier.newLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         syncBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         syncBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-        syncBarrier.image = useSceneTarget ? sceneTarget_.colorImage : swapchain_.Images()[currentImageIndex_];
+        syncBarrier.image         = useSceneTarget ? sceneTarget_.colorImage : swapchain_.Images()[currentImageIndex_];
         syncBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         syncBarrier.subresourceRange.baseMipLevel   = 0;
         syncBarrier.subresourceRange.levelCount     = 1;
         syncBarrier.subresourceRange.baseArrayLayer = 0;
         syncBarrier.subresourceRange.layerCount     = 1;
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &syncBarrier);
+        vkCmdPipelineBarrier(cmd,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             0,
+                             0,
+                             nullptr,
+                             0,
+                             nullptr,
+                             1,
+                             &syncBarrier);
     }
 
     if (useSceneTarget) {
-        // Transition offscreen target from whatever it was (usually SHADER_READ_ONLY_OPTIMAL or UNDEFINED) to COLOR_ATTACHMENT_OPTIMAL
+        // Transition offscreen target from whatever it was (usually SHADER_READ_ONLY_OPTIMAL or UNDEFINED) to
+        // COLOR_ATTACHMENT_OPTIMAL
         VkImageMemoryBarrier transitionBarrier{};
-        transitionBarrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        transitionBarrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED; // We don't care about previous contents before clearing
-        transitionBarrier.newLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        transitionBarrier.srcAccessMask       = 0;
-        transitionBarrier.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        transitionBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        transitionBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        transitionBarrier.image               = sceneTarget_.colorImage;
+        transitionBarrier.sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        transitionBarrier.oldLayout     = VK_IMAGE_LAYOUT_UNDEFINED; // We don't care about previous contents before clearing
+        transitionBarrier.newLayout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        transitionBarrier.srcAccessMask = 0;
+        transitionBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        transitionBarrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        transitionBarrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        transitionBarrier.image                           = sceneTarget_.colorImage;
         transitionBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         transitionBarrier.subresourceRange.baseMipLevel   = 0;
         transitionBarrier.subresourceRange.levelCount     = 1;
@@ -439,41 +449,68 @@ void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
             transitionBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &transitionBarrier);
-        
+        vkCmdPipelineBarrier(cmd,
+                             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             0,
+                             0,
+                             nullptr,
+                             0,
+                             nullptr,
+                             1,
+                             &transitionBarrier);
+
         // Depth barrier
         VkImageMemoryBarrier depthBarrier{};
-        depthBarrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        depthBarrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthBarrier.newLayout           = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        depthBarrier.srcAccessMask       = 0;
-        depthBarrier.dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        depthBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        depthBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        depthBarrier.image               = sceneTarget_.depthImage;
+        depthBarrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        depthBarrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout                       = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthBarrier.srcAccessMask                   = 0;
+        depthBarrier.dstAccessMask                   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.image                           = sceneTarget_.depthImage;
         depthBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
         depthBarrier.subresourceRange.baseMipLevel   = 0;
         depthBarrier.subresourceRange.levelCount     = 1;
         depthBarrier.subresourceRange.baseArrayLayer = 0;
         depthBarrier.subresourceRange.layerCount     = 1;
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 0, nullptr, 1, &depthBarrier);
+        vkCmdPipelineBarrier(cmd,
+                             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                             0,
+                             0,
+                             nullptr,
+                             0,
+                             nullptr,
+                             1,
+                             &depthBarrier);
     } else if (!isUiPass) {
         // Depth barrier for swapchain in runtime mode
         VkImageMemoryBarrier depthBarrier{};
-        depthBarrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        depthBarrier.oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthBarrier.newLayout           = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        depthBarrier.srcAccessMask       = 0;
-        depthBarrier.dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        depthBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        depthBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        depthBarrier.image               = swapchainDepthImages_[currentImageIndex_];
+        depthBarrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        depthBarrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout                       = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        depthBarrier.srcAccessMask                   = 0;
+        depthBarrier.dstAccessMask                   = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.image                           = swapchainDepthImages_[currentImageIndex_];
         depthBarrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
         depthBarrier.subresourceRange.baseMipLevel   = 0;
         depthBarrier.subresourceRange.levelCount     = 1;
         depthBarrier.subresourceRange.baseArrayLayer = 0;
         depthBarrier.subresourceRange.layerCount     = 1;
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, 0, 0, nullptr, 0, nullptr, 1, &depthBarrier);
+        vkCmdPipelineBarrier(cmd,
+                             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                             0,
+                             0,
+                             nullptr,
+                             0,
+                             nullptr,
+                             1,
+                             &depthBarrier);
     }
 
     VkRenderingAttachmentInfo colorAttachment{};
@@ -481,35 +518,35 @@ void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
     colorAttachment.imageLayout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachment.loadOp           = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}}; 
+    colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
     renderingInfo.layerCount           = 1;
     renderingInfo.colorAttachmentCount = 1;
-    
+
     VkRenderingAttachmentInfo depthAttachment{};
-    depthAttachment.sType            = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    depthAttachment.imageLayout      = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    depthAttachment.loadOp           = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-    depthAttachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
-    depthAttachment.clearValue.depthStencil = {1.0f, 0}; 
+    depthAttachment.sType                   = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    depthAttachment.imageLayout             = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depthAttachment.loadOp                  = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+    depthAttachment.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
+    depthAttachment.clearValue.depthStencil = {1.0f, 0};
 
     if (useSceneTarget) {
         // Render to offscreen scene target
-        colorAttachment.imageView        = sceneTarget_.colorView;
-        renderingInfo.renderArea         = {{0, 0}, {sceneTarget_.width, sceneTarget_.height}};
+        colorAttachment.imageView = sceneTarget_.colorView;
+        renderingInfo.renderArea  = {{0, 0}, {sceneTarget_.width, sceneTarget_.height}};
 
-        depthAttachment.imageView        = sceneTarget_.depthView;
-        renderingInfo.pDepthAttachment   = &depthAttachment;
+        depthAttachment.imageView      = sceneTarget_.depthView;
+        renderingInfo.pDepthAttachment = &depthAttachment;
     } else {
         // Render directly to swapchain
-        colorAttachment.imageView        = swapchain_.ImageViews()[currentImageIndex_];
-        renderingInfo.renderArea         = {{0, 0}, swapchain_.Extent()};
-        
+        colorAttachment.imageView = swapchain_.ImageViews()[currentImageIndex_];
+        renderingInfo.renderArea  = {{0, 0}, swapchain_.Extent()};
+
         if (!isUiPass) {
-            depthAttachment.imageView        = swapchainDepthViews_[currentImageIndex_];
-            renderingInfo.pDepthAttachment   = &depthAttachment;
+            depthAttachment.imageView      = swapchainDepthViews_[currentImageIndex_];
+            renderingInfo.pDepthAttachment = &depthAttachment;
         }
     }
 
@@ -518,46 +555,55 @@ void Renderer::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
     vkCmdBeginRendering(cmd, &renderingInfo);
 }
 
-void Renderer::EndRendering(VkCommandBuffer cmd) {
+void RendererClass::EndRendering(VkCommandBuffer cmd) {
     vkCmdEndRendering(cmd);
 
-    bool isUiPass = (cmd == uiCommandBuffers_[currentFrame_]);
+    bool isUiPass       = (cmd == uiCommandBuffers_[currentFrame_]);
     bool useSceneTarget = !isUiPass && (sceneTarget_.colorImage != VK_NULL_HANDLE);
 
     // If we just rendered to the offscreen target, transition it to SHADER_READ_ONLY_OPTIMAL for ImGui
     if (useSceneTarget) {
         VkImageMemoryBarrier barrier{};
-        barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
-        barrier.newLayout           = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        barrier.dstAccessMask       = VK_ACCESS_SHADER_READ_BIT;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image               = sceneTarget_.colorImage;
+        barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.newLayout                       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.srcAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        barrier.dstAccessMask                   = VK_ACCESS_SHADER_READ_BIT;
+        barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image                           = sceneTarget_.colorImage;
         barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
         barrier.subresourceRange.baseMipLevel   = 0;
         barrier.subresourceRange.levelCount     = 1;
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount     = 1;
 
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+        vkCmdPipelineBarrier(cmd,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                             0,
+                             0,
+                             nullptr,
+                             0,
+                             nullptr,
+                             1,
+                             &barrier);
     }
 }
 
-void Renderer::EndFrame() {
-    auto cmd = commandBuffers_[currentFrame_];
+void RendererClass::EndFrame() {
+    auto cmd   = commandBuffers_[currentFrame_];
     auto uiCmd = uiCommandBuffers_[currentFrame_];
 
     VkImageMemoryBarrier barrier{};
-    barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
-    barrier.newLayout           = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    barrier.srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    barrier.dstAccessMask       = 0;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchain_.Images()[currentImageIndex_];
+    barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.newLayout                       = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.srcAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask                   = 0;
+    barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image                           = swapchain_.Images()[currentImageIndex_];
     barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel   = 0;
     barrier.subresourceRange.levelCount     = 1;
@@ -565,12 +611,20 @@ void Renderer::EndFrame() {
     barrier.subresourceRange.layerCount     = 1;
 
     // We do the transition on uiCmd, which is the last buffer to execute
-    vkCmdPipelineBarrier(
-        uiCmd, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(uiCmd,
+                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                         VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                         0,
+                         0,
+                         nullptr,
+                         0,
+                         nullptr,
+                         1,
+                         &barrier);
 
     if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
         throw std::runtime_error("vkEndCommandBuffer failed");
-        
+
     if (vkEndCommandBuffer(uiCmd) != VK_SUCCESS)
         throw std::runtime_error("vkEndCommandBuffer failed");
 
@@ -590,8 +644,7 @@ void Renderer::EndFrame() {
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores    = signalSems;
 
-    if (vkQueueSubmit(Lgt::Vulkan::g_Device->GraphicsQueue(), 1, &submitInfo, inFlightFences_[currentFrame_]) !=
-        VK_SUCCESS)
+    if (vkQueueSubmit(Lgt::Vulkan::g_Device->GraphicsQueue(), 1, &submitInfo, inFlightFences_[currentFrame_]) != VK_SUCCESS)
         throw std::runtime_error("vkQueueSubmit failed");
 
     VkSwapchainKHR   swapchains[] = {swapchain_.Handle()}; // <-- .Handle()
@@ -612,7 +665,7 @@ void Renderer::EndFrame() {
     }
 }
 
-void Renderer::createTestResources() {
+void RendererClass::createTestResources() {
 
     // pipeline
     auto vertCode = readFile("shaders/shader.vert.spv");
@@ -688,9 +741,9 @@ void Renderer::createTestResources() {
     depthStencil.stencilTestEnable     = VK_FALSE;
 
     VkPipelineRenderingCreateInfo renderingInfo{};
-    renderingInfo.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    renderingInfo.colorAttachmentCount    = 1;
-    renderingInfo.depthAttachmentFormat   = VK_FORMAT_D32_SFLOAT;
+    renderingInfo.sType                 = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingInfo.colorAttachmentCount  = 1;
+    renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
     VkFormat colorFormat                  = swapchain_.Format();
     renderingInfo.pColorAttachmentFormats = &colorFormat;
@@ -717,8 +770,7 @@ void Renderer::createTestResources() {
     pipelineInfo.renderPass = VK_NULL_HANDLE;
 
     if (vkCreateGraphicsPipelines(
-            Lgt::Vulkan::g_Device->Logical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &TraingleGfxPipeline_) !=
-        VK_SUCCESS)
+            Lgt::Vulkan::g_Device->Logical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &TraingleGfxPipeline_) != VK_SUCCESS)
         throw std::runtime_error("vkCreateGraphicsPipelines failed");
 
     vkDestroyShaderModule(Lgt::Vulkan::g_Device->Logical(), fragModule, nullptr);
@@ -727,9 +779,9 @@ void Renderer::createTestResources() {
     // vertex buffer -- ssbo
 
     float positions[6] = {0.0, -0.5, 0.5, 0.5, -0.5, 0.5};
-    vertSSBO_          = CreateSSBO(sizeof(positions));
-    auto* dstgpubuffer = g_Buffers.Get(vertSSBO_);
-    vertGpuIndex       = g_ResourceHeap->AllocateSSBO(vertSSBO_);
+    vertSSBO_          = Resources->CreateBuffer(BufferDesc::SSBO(sizeof(positions)));
+    auto* dstgpubuffer = Resources->GetBuffer(vertSSBO_);
+    vertGpuIndex       = ResourceHeap->AllocateSSBO(vertSSBO_);
 
     Buffer srcBuffer{};
 
@@ -737,9 +789,8 @@ void Renderer::createTestResources() {
     bufferci.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferci.size        = 24;
     bufferci.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    bufferci.sharingMode = Vulkan::g_Device->GraphicsFamily() == Vulkan::g_Device->TransferFamily()
-                               ? VK_SHARING_MODE_CONCURRENT
-                               : VK_SHARING_MODE_EXCLUSIVE;
+    bufferci.sharingMode = Vulkan::g_Device->GraphicsFamily() == Vulkan::g_Device->TransferFamily() ? VK_SHARING_MODE_CONCURRENT
+                                                                                                    : VK_SHARING_MODE_EXCLUSIVE;
 
     uint32_t queuefamilyindices[]  = {Vulkan::g_Device->GraphicsFamily(), Vulkan::g_Device->TransferFamily()};
     bufferci.queueFamilyIndexCount = 2;
@@ -780,12 +831,12 @@ void Renderer::createTestResources() {
     Vulkan::g_Allocator->destroyBuffer(srcBuffer.buffer, srcBuffer.allocation);
 }
 
-void Renderer::framebufferResizeCallback(GLFWwindow* w, int /*width*/, int /*height*/) {
-    auto* app                = reinterpret_cast<Renderer*>(glfwGetWindowUserPointer(w));
+void RendererClass::framebufferResizeCallback(GLFWwindow* w, int /*width*/, int /*height*/) {
+    auto* app                = reinterpret_cast<RendererClass*>(glfwGetWindowUserPointer(w));
     app->framebufferResized_ = true;
 }
 
-void Renderer::createCommandPool() {
+void RendererClass::createCommandPool() {
     VkCommandPoolCreateInfo ci{};
     ci.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     ci.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -795,7 +846,7 @@ void Renderer::createCommandPool() {
         throw std::runtime_error("vkCreateCommandPool failed");
 }
 
-void Renderer::createCommandBuffers() {
+void RendererClass::createCommandBuffers() {
     commandBuffers_.resize(MAX_FRAMES_IN_FLIGHT);
     uiCommandBuffers_.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -807,12 +858,12 @@ void Renderer::createCommandBuffers() {
 
     if (vkAllocateCommandBuffers(Lgt::Vulkan::g_Device->Logical(), &allocInfo, commandBuffers_.data()) != VK_SUCCESS)
         throw std::runtime_error("vkAllocateCommandBuffers failed");
-        
+
     if (vkAllocateCommandBuffers(Lgt::Vulkan::g_Device->Logical(), &allocInfo, uiCommandBuffers_.data()) != VK_SUCCESS)
         throw std::runtime_error("vkAllocateCommandBuffers failed");
 }
 
-void Renderer::createSyncObjects() {
+void RendererClass::createSyncObjects() {
     imageAvailableSems_.resize(MAX_FRAMES_IN_FLIGHT);
     renderFinishedSems_.resize(MAX_FRAMES_IN_FLIGHT);
     inFlightFences_.resize(MAX_FRAMES_IN_FLIGHT);
@@ -829,10 +880,10 @@ void Renderer::createSyncObjects() {
     }
 }
 
-void Renderer::createUBOS() {
+void RendererClass::createUBOS() {
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        auto bufferHandle = CreateUBO(sizeof(FrameUBO));
-        g_ResourceHeap->AllocateUBO(bufferHandle);
+        auto bufferHandle = Resources->CreateBuffer(BufferDesc::UBO(sizeof(FrameUBO)));
+        ResourceHeap->AllocateUBO(bufferHandle);
         frameUBO_.push_back(std::move(bufferHandle));
     }
 }

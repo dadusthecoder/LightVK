@@ -27,9 +27,9 @@ void Viewport::Draw() {
 
     if (width > 0 && height > 0) {
         // Resize the offscreen scene target if the ImGui window size changed
-        Gpu::g_Renderer->ResizeSceneTarget(width, height);
+        Gpu::Renderer->ResizeSceneTarget(width, height);
 
-        VkDescriptorSet textureId = Gpu::g_Renderer->GetSceneTexture();
+        VkDescriptorSet textureId = Gpu::Renderer->GetSceneTexture();
         if (textureId != VK_NULL_HANDLE) {
             // Draw the offscreen texture filling the available region
             ImGui::Image((ImTextureID)textureId, ImVec2{ (float)width, (float)height });

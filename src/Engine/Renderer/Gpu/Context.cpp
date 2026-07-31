@@ -1,40 +1,38 @@
-#include "Context.h"
+
 #include "Engine/Renderer/Vulkan/Context.h"
+#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Renderer/Gpu/ResourceManager.h"
 
 namespace Lgt::Gpu {
 
-Renderer*       g_Renderer = nullptr;
-DescriptorHeap* g_ResourceHeap = nullptr;
-DescriptorHeap* g_SamplerHeap = nullptr;
-
-ResourcePool<Texture, TextureHandle> g_Textures;
-ResourcePool<Buffer, BufferHandle>   g_Buffers;
+RendererClass*   Renderer      = nullptr;
+DescriptorHeap*  ResourceHeap  = nullptr;
+DescriptorHeap*  SamplerHeap = nullptr;
+ResourceManager* Resources   = nullptr;
 
 void Init(GLFWwindow* window) {
-    g_ResourceHeap =
+    ResourceHeap =
         new DescriptorHeap(MAX_RESOURCES * 32 + Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange);
-    g_SamplerHeap =
+    SamplerHeap =
         new DescriptorHeap(MAX_SAMPLERS * 16 + Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange);
-    g_Renderer = new Renderer();
-    g_Renderer->Init(window);
+
+    Resources = new ResourceManager();
+    Resources->Init();
+
+    Renderer = new RendererClass();
+    Renderer->Init(window);
 }
 
 void Shutdown() {
     vkDeviceWaitIdle(Vulkan::g_Device->Logical());
 
-    g_Buffers.ForEach([&](Gpu::Buffer& buffer) {
-        if (buffer.mapped)
-            Vulkan::g_Allocator->unmap(buffer.allocation);
+    Resources->Shutdown();
+    delete Resources;
 
-        Vulkan::g_Allocator->destroyBuffer(buffer.buffer, buffer.allocation);
-    });
+    delete ResourceHeap;
+    delete SamplerHeap;
 
-    g_Buffers.Clear();
-
-    delete g_ResourceHeap;
-    delete g_SamplerHeap;
-
-    g_Renderer->ShutDown();
+    Renderer->ShutDown();
 }
 
 } // namespace Lgt::Gpu

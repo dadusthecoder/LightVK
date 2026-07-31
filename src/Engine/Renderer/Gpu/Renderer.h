@@ -40,7 +40,7 @@ struct OffscreenTarget {
     uint32_t width = 0, height = 0;
 };
 
-class Renderer {
+class RendererClass {
 public:
     void Init(GLFWwindow* window);
     void ShutDown();

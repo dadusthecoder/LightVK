@@ -10,6 +10,7 @@ add_library(LightVKEngine SHARED
 
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/imgui)
+set(IMGUI_NODE_EDITOR_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/imgui-node-editor)
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
@@ -19,6 +20,10 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+    ${IMGUI_NODE_EDITOR_DIR}/crude_json.cpp
+    ${IMGUI_NODE_EDITOR_DIR}/imgui_canvas.cpp
+    ${IMGUI_NODE_EDITOR_DIR}/imgui_node_editor.cpp
+    ${IMGUI_NODE_EDITOR_DIR}/imgui_node_editor_api.cpp
 )
 
 target_sources(LightVKEngine PRIVATE ${IMGUI_SOURCES})
@@ -32,6 +37,7 @@ target_include_directories(LightVKEngine
     "${VOLK_INCLUDE_DIR}/.." 
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+    ${IMGUI_NODE_EDITOR_DIR}
 )
 
 target_link_libraries(LightVKEngine

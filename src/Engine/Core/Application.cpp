@@ -42,7 +42,7 @@ void Application::Init() {
     // ImGui is always initialized (it lives in the engine),
     // but the UI pass is only executed if EnableUi() was called.
     imguiLayer_ = std::make_unique<ImGuiLayer>();
-    imguiLayer_->Init(window_, Gpu::g_Renderer->SwapchainFormat());
+    imguiLayer_->Init(window_, Gpu::Renderer->SwapchainFormat());
 
     OnInit();
 }
@@ -59,7 +59,7 @@ void Application::Run() {
         // App logic hook — pure game logic, no rendering
         OnUpdate(timer_->DeltaTime());
 
-        if (Gpu::g_Renderer->BeginFrame(currentFrame)) {
+        if (Gpu::Renderer->BeginFrame(currentFrame)) {
 
             // UI pass — only if enabled (Editor). Zero overhead for Runtime.
             if (uiEnabled_) {
@@ -71,7 +71,7 @@ void Application::Run() {
             // Scene pass — find active camera, render all loaded meshes
             RenderScene();
 
-            Gpu::g_Renderer->EndFrame();
+            Gpu::Renderer->EndFrame();
         }
 
         glfwPollEvents();
@@ -87,15 +87,15 @@ void Application::Shutdown() {
 }
 
 void Application::BeginUi() {
-    auto uiCmd = Gpu::g_Renderer->GetUICommandBuffer();
+    auto uiCmd = Gpu::Renderer->GetUICommandBuffer();
     imguiLayer_->BeginFrame();
-    Gpu::g_Renderer->BeginRendering(uiCmd, false);
+    Gpu::Renderer->BeginRendering(uiCmd, false);
 }
 
 void Application::EndUi() {
-    auto uiCmd = Gpu::g_Renderer->GetUICommandBuffer();
+    auto uiCmd = Gpu::Renderer->GetUICommandBuffer();
     imguiLayer_->EndFrame(uiCmd);
-    Gpu::g_Renderer->EndRendering(uiCmd);
+    Gpu::Renderer->EndRendering(uiCmd);
 }
 
 void Application::RenderScene() {
@@ -113,8 +113,8 @@ void Application::RenderScene() {
             continue;
 
         // Use offscreen target dimensions if valid, else fallback to Swapchain (runtime)
-        uint32_t sceneW = Gpu::g_Renderer->GetSceneWidth();
-        uint32_t sceneH = Gpu::g_Renderer->GetSceneHeight();
+        uint32_t sceneW = Gpu::Renderer->GetSceneWidth();
+        uint32_t sceneH = Gpu::Renderer->GetSceneHeight();
         if (sceneW == 0 || sceneH == 0) {
             sceneW = WIDTH;
             sceneH = HEIGHT;
@@ -129,7 +129,7 @@ void Application::RenderScene() {
 
     // Render all loaded meshes
     for (auto& mesh : meshes_) {
-        Gpu::g_Renderer->Render(&mesh, viewProj);
+        Gpu::Renderer->Render(&mesh, viewProj);
     }
 }
 
@@ -141,19 +141,19 @@ Gpu::DrawList Application::LoadMesh(const std::filesystem::path& path) {
     uint32_t*         indexCounts = new uint32_t[model.meshes.size()];
 
     for (unsigned int i = 0; i < model.meshes.size(); ++i) {
-        auto vbo = Gpu::CreateSSBO(model.meshes[i].vertices.size() * sizeof(Gpu::Vertex));
-        auto ibo = Gpu::CreateSSBO(model.meshes[i].indices.size() * sizeof(uint32_t));
+        auto vbo = Gpu::Resources->CreateBuffer(Gpu::BufferDesc::SSBO(model.meshes[i].vertices.size() * sizeof(Gpu::Vertex)));
+        auto ibo = Gpu::Resources->CreateBuffer(Gpu::BufferDesc::SSBO(model.meshes[i].indices.size() * sizeof(uint32_t)));
 
-        Vulkan::g_Uploader->UploadBuffer(Gpu::g_Buffers.Get(vbo)->buffer,
+        Vulkan::g_Uploader->UploadBuffer(Gpu::Resources->GetBuffer(vbo)->buffer,
                                                   model.meshes[i].vertices.data(),
                                                   model.meshes[i].vertices.size() * sizeof(Gpu::Vertex));
 
-        Vulkan::g_Uploader->UploadBuffer(Gpu::g_Buffers.Get(ibo)->buffer,
+        Vulkan::g_Uploader->UploadBuffer(Gpu::Resources->GetBuffer(ibo)->buffer,
                                                   model.meshes[i].indices.data(),
                                                   model.meshes[i].indices.size() * sizeof(uint32_t));
 
-        commands[i].vertexBufferIndex = Gpu::g_ResourceHeap->AllocateSSBO(vbo);
-        commands[i].indexBufferIndex  = Gpu::g_ResourceHeap->AllocateSSBO(ibo);
+        commands[i].vertexBufferIndex = Gpu::ResourceHeap->AllocateSSBO(vbo);
+        commands[i].indexBufferIndex  = Gpu::ResourceHeap->AllocateSSBO(ibo);
         indexCounts[i]                = model.meshes[i].indices.size();
     }
 

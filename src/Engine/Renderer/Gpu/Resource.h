@@ -31,15 +31,19 @@ struct Buffer {
 };
 
 struct Texture {
-    VkImage       image            = VK_NULL_HANDLE;
-    VmaAllocation allocation       = VK_NULL_HANDLE;
-    VkFormat      format           = VK_FORMAT_UNDEFINED;
-    uint32_t      width            = 0;
-    uint32_t      height           = 0;
-    uint32_t      mipLevels        = 1;
-    uint32_t      arrayLayers      = 1;
-    bool          isSwapchainImage = false;
-    std::string   debugName;
+    VkImage              image            = VK_NULL_HANDLE;
+    VkImageView          defaultView      = VK_NULL_HANDLE;
+    VmaAllocation        allocation       = VK_NULL_HANDLE;
+    VkFormat             format           = VK_FORMAT_UNDEFINED;
+    uint32_t             width            = 0;
+    uint32_t             height           = 0;
+    uint32_t             mipLevels        = 1;
+    uint32_t             arrayLayers      = 1;
+    bool                 isSwapchainImage = false;
+    VkImageLayout        currentLayout    = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkAccessFlags        currentAccess    = 0;
+    VkPipelineStageFlags currentStage     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    std::string          debugName;
 };
 
 LGT_DEFINE_HANDLE(Buffer);
@@ -51,45 +55,48 @@ public:
     using ValueType = uint32_t;
 
     ResourcePool() {
-        _My_resource.emplace_back();
-        _My_generation.emplace_back(1);
-        _My_key = GenerateKey();
+        resources_.emplace_back();
+        generations_.emplace_back(1);
+        alive_.emplace_back(false);
     }
 
     Handle Allocate(ResourceType resource) {
         ValueType index;
         Handle    handle;
 
-        if (_My_freelist.empty()) {
-            index = static_cast<ValueType>(_My_resource.size());
-            _My_resource.push_back(resource);
-            _My_generation.push_back(1);
+        if (freelist_.empty()) {
+            index = static_cast<ValueType>(resources_.size());
+            resources_.push_back(resource);
+            generations_.push_back(1);
+            alive_.push_back(true);
         } else {
-            index = _My_freelist.back();
-            _My_freelist.pop_back();
-            _My_resource[index] = resource;
-            ++_My_generation[index];
+            index = freelist_.back();
+            freelist_.pop_back();
+            resources_[index] = resource;
+            ++generations_[index];
+            alive_[index] = true;
         }
 
-        uint64_t raw = (static_cast<uint64_t>(_My_generation[index]) << 32) | static_cast<uint64_t>(index);
+        uint64_t raw = (static_cast<uint64_t>(generations_[index]) << 32) | static_cast<uint64_t>(index);
 
-        handle.id = Encrypt(raw);
+        handle.id = raw;
         return handle;
     }
 
     void Free(Handle& handle) {
-        LIGHTVK_ASSERT_MSG(handle.IsValid(), "ResourcePool::free: trying to free an invalid handle");
+        LGT_ASSERT(handle.IsValid(), "ResourcePool::free: trying to free an invalid handle");
 
-        uint64_t raw   = Decrypt(handle.id);
+        uint64_t raw   = handle.id;
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        LGT_ASSERT_MSG(index < _My_resource.size() && _My_generation[index] == gen,
-                       "ResourcePool::free: stale or foreign handle detected");
+        LGT_ASSERT(index < resources_.size() && generations_[index] == gen,
+                   "ResourcePool::free: stale or foreign handle detected");
 
-        handle.id           = 0;
-        _My_resource[index] = ResourceType{};
-        _My_freelist.push_back(index);
+        handle.id         = 0;
+        resources_[index] = ResourceType{};
+        alive_[index]     = false;
+        freelist_.push_back(index);
     }
 
     ResourceType* Get(const Handle& handle) {
@@ -98,40 +105,39 @@ public:
             return nullptr;
         }
 
-        uint64_t raw   = Decrypt(handle.id);
+        uint64_t raw   = handle.id;
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        if (!(index < _My_resource.size() && _My_generation[index] == gen)) {
+        if (!(index < resources_.size() && generations_[index] == gen)) {
             LIGHTVK_WARN("stale or foreign handle detected");
             return nullptr;
         }
 
-        return &_My_resource[index];
+        return &resources_[index];
     }
 
     template <typename Fn> void ForEach(Fn&& fn) {
-        for (size_t i = 1; i < _My_resource.size(); ++i) {
-            if (_My_generation[i] != 0) {
-                fn(_My_resource[i]);
+        for (size_t i = 1; i < resources_.size(); ++i) {
+            if (generations_[i] != 0) {
+                fn(resources_[i]);
             }
         }
     }
 
     template <typename Fn> void ForEachAlive(Fn&& fn) {
-        for (ValueType i = 1; i < _My_resource.size(); ++i) {
-            // skip freed slots
-            if (std::find(_My_freelist.begin(), _My_freelist.end(), i) != _My_freelist.end())
+        for (ValueType i = 1; i < resources_.size(); ++i) {
+            if (!alive_[i])
                 continue;
 
-            uint32_t gen = _My_generation[i];
+            uint32_t gen = generations_[i];
 
             uint64_t raw = (static_cast<uint64_t>(gen) << 32) | static_cast<uint64_t>(i);
 
             Handle handle;
-            handle.id = Encrypt(raw);
+            handle.id = raw;
 
-            fn(_My_resource[i], handle);
+            fn(resources_[i], handle);
         }
     }
 
@@ -139,55 +145,30 @@ public:
         if (!handle.IsValid())
             return false;
 
-        uint64_t raw   = Decrypt(handle.id);
+        uint64_t raw   = handle.id;
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        return index < _My_resource.size() && _My_generation[index] == gen;
+        return index < resources_.size() && generations_[index] == gen;
     }
 
     void Clear() {
-        _My_resource.clear();
-        _My_generation.clear();
-        _My_freelist.clear();
-        _My_resource.emplace_back();
-        _My_generation.emplace_back(1);
+        resources_.clear();
+        generations_.clear();
+        freelist_.clear();
+        alive_.clear();
+        resources_.emplace_back();
+        generations_.emplace_back(1);
+        alive_.emplace_back(false);
     }
 
 private:
-    static uint64_t RotateLeft(uint64_t x, int r) { return (x << r) | (x >> (64 - r)); }
-    static uint64_t RotateRight(uint64_t x, int r) { return (x >> r) | (x << (64 - r)); }
-
-    uint64_t Encrypt(uint64_t value) const {
-        value ^= _My_key;
-        value  = RotateLeft(value, 17);
-        return value;
-    }
-
-    uint64_t Decrypt(uint64_t value) const {
-        value  = RotateRight(value, 17);
-        value ^= _My_key;
-        return value;
-    }
-
-    static uint64_t GenerateKey() {
-        static std::atomic<uint64_t> counter{0xA5B35705F00DBAAD};
-        return counter.fetch_add(0x9E3779B97F4A7C15ull);
-    }
-
-private:
-    std::vector<ResourceType> _My_resource;
-    std::vector<ValueType>    _My_generation;
-    std::vector<ValueType>    _My_freelist;
-    uint64_t                  _My_key = 0;
+    std::vector<ResourceType> resources_;
+    std::vector<ValueType>    generations_;
+    std::vector<bool>         alive_;
+    std::vector<ValueType>    freelist_;
 };
 
-// BufferHandle CreateIBO(size_t size, bool dynamic = false);
-// BufferHandle CreateVBO(size_t size, bool dynamic = false);
-BufferHandle CreateSSBO(size_t size, bool dynamic = false);
-BufferHandle CreateUBO(size_t size);
-
 // TextureHandle createTexture();
-// samplerHandle createSampler();
 
 } // namespace Lgt::Gpu
