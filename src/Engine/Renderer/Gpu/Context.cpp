@@ -5,10 +5,11 @@
 
 namespace Lgt::Gpu {
 
-RendererClass*   Renderer      = nullptr;
-DescriptorHeap*  ResourceHeap  = nullptr;
-DescriptorHeap*  SamplerHeap = nullptr;
-ResourceManager* Resources   = nullptr;
+RendererClass*    Renderer     = nullptr;
+DescriptorHeap*   ResourceHeap = nullptr;
+DescriptorHeap*   SamplerHeap  = nullptr;
+ResourceManager*  Resources    = nullptr;
+RenderGraphClass* RenderGraph  = nullptr;
 
 void Init(GLFWwindow* window) {
     ResourceHeap =
@@ -21,18 +22,27 @@ void Init(GLFWwindow* window) {
 
     Renderer = new RendererClass();
     Renderer->Init(window);
+
+    RenderGraph = new RenderGraphClass();
+    RenderGraph->Init();
 }
 
 void Shutdown() {
+
     vkDeviceWaitIdle(Vulkan::g_Device->Logical());
 
     Resources->Shutdown();
     delete Resources;
 
     delete ResourceHeap;
+    
     delete SamplerHeap;
 
     Renderer->ShutDown();
+    delete Renderer;
+
+    RenderGraph->ShoutDown();
+    delete RenderGraph;
 }
 
 } // namespace Lgt::Gpu

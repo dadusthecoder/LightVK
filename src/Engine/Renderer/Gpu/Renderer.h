@@ -44,22 +44,10 @@ class RendererClass {
 public:
     void Init(GLFWwindow* window);
     void ShutDown();
-    // Issues rendering commands to the command buffer.
-    // NOTE: Must be called between BeginFrame() and EndFrame().
     void Render(DrawList* list, const glm::mat4& viewProj);
-
-    // Begins dynamic rendering on the specified command buffer.
-    // If clearColor is true, the attachment is cleared; otherwise it is loaded.
     void BeginRendering(VkCommandBuffer cmd, bool clearColor = true);
-
-    // Ends dynamic rendering on the specified command buffer.
     void EndRendering(VkCommandBuffer cmd);
-
-    // Starts a new frame, acquires swapchain image, begins command buffers.
-    // Returns false if swapchain was recreated (skip frame).
     bool BeginFrame(uint32_t frameIndex);
-
-    // Ends the frame, ends command buffers, submits queue and presents.
     void EndFrame();
 
     void ResizeSceneTarget(uint32_t width, uint32_t height);
@@ -82,7 +70,7 @@ private:
     std::vector<VkCommandBuffer> commandBuffers_;
     std::vector<VkCommandBuffer> uiCommandBuffers_;
     std::vector<BufferHandle>    frameUBO_;
-    
+
     // Swapchain depth buffers
     std::vector<VkImage>         swapchainDepthImages_;
     std::vector<VmaAllocation>   swapchainDepthAllocs_;

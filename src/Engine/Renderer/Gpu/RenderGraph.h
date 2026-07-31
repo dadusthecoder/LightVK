@@ -13,24 +13,49 @@
 
 namespace Lgt::Gpu { // namespace  Lgt::Gpu
 
-using PassExecuteFn = void (*)(void* userdata);
+using RenderGraphNodePassExecuteFn = void (*)(void* userdata);
 
-struct RenderGraphNodePass {
+struct RenderGraphPassNode {
 
-    std::string                name;
-    PassExecuteFn              execute;
+    std::string                  name    = "pass";
+    RenderGraphNodePassExecuteFn execute = nullptr;
+
     std::vector<TextureHandle> readTextures;
     std::vector<TextureHandle> writeTextures;
-    std::vector<BufferHandle>  readBuffer;
-    std::vector<BufferHandle>  writeBuffer;
+    std::vector<BufferHandle>  readBuffers;
+    std::vector<BufferHandle>  writeBuffers;
+
+    RenderGraphPassNode Reads(TextureHandle texture) {
+        readTextures.push_back(texture);
+        return *this;
+    }
+
+    RenderGraphPassNode Reads(BufferHandle buffer) {
+        readBuffers.push_back(buffer);
+        return *this;
+    }
+
+    RenderGraphPassNode Writes(TextureHandle texture) {
+        writeTextures.push_back(texture);
+        return *this;
+    }
+
+    RenderGraphPassNode Writes(BufferHandle buffer) {
+        writeBuffers.push_back(buffer);
+        return *this;
+    }
 };
 
-class RenderGraph {
+class RenderGraphClass {
+public:
+    void Init();
+    void ShoutDown();
 
-    void AddPass(std::string name);
+    void AddPass(RenderGraphPassNode pass);
+    void Execute();
 
 private:
-    std::vector<RenderGraphNodePass> graph_compiled_;
-    std::vector<RenderGraphNodePass> graph_intenal_;
+    std::vector<RenderGraphPassNode> graph_compiled_;
+    std::vector<RenderGraphPassNode> graph_intenal_;
 };
 } // namespace Lgt::Gpu
