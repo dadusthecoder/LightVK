@@ -52,7 +52,7 @@ template <typename T, typename... Args> inline decltype(auto) Entity::Add(Args&&
 template <typename T> inline void Entity::Remove() {
     LGT_ASSERT_STATIC(!std::is_reference_v<T>, "Component type cannot be a reference");
     if (!LIGHTVK_VERIFY(Has<T>(), "Component dose not exists on this entity! Use Add()")) {}
-    world_->Registry().Remove<T>(handle_);
+    world_->Registry().remove<T>(handle_);
 }
 
 template <typename T> inline decltype(auto) Entity::Get() {

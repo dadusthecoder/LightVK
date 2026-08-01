@@ -13,49 +13,101 @@
 
 namespace Lgt::Gpu { // namespace  Lgt::Gpu
 
-using RenderGraphNodePassExecuteFn = void (*)(void* userdata);
+using RenderGraphExecuteCallback = std::function<void(VkCommandBuffer)>;
 
-struct RenderGraphPassNode {
+enum class Access : uint8_t {
+    Read,
+    Write
+};
 
-    std::string                  name    = "pass";
-    RenderGraphNodePassExecuteFn execute = nullptr;
+enum class ResourceKind : uint8_t {
+    Texture,
+    Buffer
+};
 
-    std::vector<TextureHandle> readTextures;
-    std::vector<TextureHandle> writeTextures;
-    std::vector<BufferHandle>  readBuffers;
-    std::vector<BufferHandle>  writeBuffers;
+struct ResourceRef {
+    uint64_t     handle;
+    ResourceKind type;
+    Access       access;
+};
 
-    RenderGraphPassNode Reads(TextureHandle texture) {
-        readTextures.push_back(texture);
+struct ResourceKey {
+    ResourceKind type;
+    uint64_t     handle;
+
+    bool operator==(const ResourceKey&) const = default;
+};
+
+} // namespace Lgt::Gpu
+
+namespace std {
+template <> struct hash<Lgt::Gpu::ResourceKey> {
+    size_t operator()(const Lgt::Gpu::ResourceKey& r) const {
+        return hash<uint64_t>()(r.handle) ^ (hash<int>()((int)r.type) << 1);
+    }
+};
+} // namespace std
+
+namespace Lgt::Gpu {
+
+struct ResourceInfo {
+    uint32_t              producer = -1;
+    std::vector<uint32_t> consumers;
+};
+
+struct RenderGraphNode {
+    uint32_t                   passID  = UINT32_MAX;
+    std::string                name    = "pass";
+    RenderGraphExecuteCallback execute = nullptr;
+
+    std::vector<ResourceRef> resources;
+
+    RenderGraphNode& Reads(TextureHandle texture) {
+        resources.push_back({texture.value, ResourceKind::Texture, Access::Read});
         return *this;
     }
 
-    RenderGraphPassNode Reads(BufferHandle buffer) {
-        readBuffers.push_back(buffer);
+    RenderGraphNode& Reads(BufferHandle buffer) {
+        resources.push_back({buffer.value, ResourceKind::Buffer, Access::Read});
         return *this;
     }
 
-    RenderGraphPassNode Writes(TextureHandle texture) {
-        writeTextures.push_back(texture);
+    RenderGraphNode& Writes(TextureHandle texture) {
+        resources.push_back({texture.value, ResourceKind::Texture, Access::Write});
         return *this;
     }
 
-    RenderGraphPassNode Writes(BufferHandle buffer) {
-        writeBuffers.push_back(buffer);
+    RenderGraphNode& Writes(BufferHandle buffer) {
+        resources.push_back({buffer.value, ResourceKind::Buffer, Access::Write});
         return *this;
     }
 };
+
+struct RenderGraphEdge {
+    uint32_t     consumer = -1;
+    uint32_t     producer = -1;
+    ResourceKind type;
+    uint64_t     handle;
+};
+
+// later this graph may consume passes that can be executed parally , or can be recorded parraly on the cpu
+// this is just a barebone implemention of what i am trying to build;
 
 class RenderGraphClass {
 public:
     void Init();
     void ShoutDown();
-
-    void AddPass(RenderGraphPassNode pass);
+    void AddPass(RenderGraphNode);
+    void Compile();
     void Execute();
 
 private:
-    std::vector<RenderGraphPassNode> graph_compiled_;
-    std::vector<RenderGraphPassNode> graph_intenal_;
+    void                                          CollectResources();
+    void                                          ResolveDependencies();
+    void                                          Validate();
+    
+    std::vector<RenderGraphEdge>                  edges_;
+    std::vector<RenderGraphNode>                  nodes_;
+    std::unordered_map<ResourceKey, ResourceInfo> resources_;
 };
 } // namespace Lgt::Gpu

@@ -28,29 +28,30 @@
 namespace Lgt {
 
 #define LGT_DEFINE_HANDLE(Name)                                                                                                  \
-    namespace HandleType {                                                                                                       \
-    struct Name {};                                                                                                              \
-    }                                                                                                                            \
-    using Name##Handle = Handle<HandleType::Name>;
+    struct Name##Tag {};                                                                                                         \
+    using Name##Handle = Handle<Name##Tag>;
 
 // Base Handle Template
 template <typename Tag> struct Handle {
 public:
     using ValueType                    = uint64_t;
-    static constexpr ValueType INVALID = 0;
+    static constexpr ValueType INVALID = std::numeric_limits<ValueType>::max();
 
-    Handle(ValueType key)
-        : id(key) {}
+    constexpr explicit Handle(ValueType key)
+        : value(key) {}
+
     Handle() = default;
 
-    bool IsValid() const { return id != INVALID; }
-
+    constexpr bool IsValid() const noexcept { return value != INVALID; }
     // operators
-    bool operator==(const Handle& o) const { return id == o.id; }
-    bool operator!=(const Handle& o) const { return id != o.id; }
-    bool operator<(const Handle& o) const { return id < o.id; }
+    constexpr explicit operator bool() const noexcept { return IsValid(); }
+    constexpr auto     operator<=>(const Handle&) const noexcept = default;
 
-    ValueType id = INVALID;
+    // helpers
+    constexpr void          Reset() noexcept { value = INVALID; }
+    static constexpr Handle Invalid() noexcept { return Handle{}; }
+
+    ValueType value = INVALID;
 };
 
 // always executes

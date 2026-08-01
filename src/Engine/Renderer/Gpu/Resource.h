@@ -79,21 +79,21 @@ public:
 
         uint64_t raw = (static_cast<uint64_t>(generations_[index]) << 32) | static_cast<uint64_t>(index);
 
-        handle.id = raw;
+        handle.value = raw;
         return handle;
     }
 
     void Free(Handle& handle) {
         LGT_ASSERT(handle.IsValid(), "ResourcePool::free: trying to free an invalid handle");
 
-        uint64_t raw   = handle.id;
+        uint64_t raw   = handle.value;
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
         LGT_ASSERT(index < resources_.size() && generations_[index] == gen,
                    "ResourcePool::free: stale or foreign handle detected");
 
-        handle.id         = 0;
+        handle.value      = 0;
         resources_[index] = ResourceType{};
         alive_[index]     = false;
         freelist_.push_back(index);
@@ -105,7 +105,7 @@ public:
             return nullptr;
         }
 
-        uint64_t raw   = handle.id;
+        uint64_t raw   = handle.value;
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
@@ -135,7 +135,7 @@ public:
             uint64_t raw = (static_cast<uint64_t>(gen) << 32) | static_cast<uint64_t>(i);
 
             Handle handle;
-            handle.id = raw;
+            handle.value = raw;
 
             fn(resources_[i], handle);
         }
