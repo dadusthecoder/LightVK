@@ -45,6 +45,52 @@ void Application::Init() {
     imguiLayer_->Init(window_, Gpu::Renderer->SwapchainFormat());
 
     OnInit();
+    Gpu::RenderGraphPass shadowPass;
+    shadowPass.name = "Shadow";
+    shadowPass.Writes(Gpu::TextureHandle(0)); // ShadowMap
+
+    Gpu::RenderGraphPass gbufferPass;
+    gbufferPass.name = "GBuffer";
+    gbufferPass.Writes(Gpu::TextureHandle(1)); // Albedo
+    gbufferPass.Writes(Gpu::TextureHandle(2)); // Normal
+    gbufferPass.Writes(Gpu::TextureHandle(3)); // Depth
+
+    Gpu::RenderGraphPass ssaoPass;
+    ssaoPass.name = "SSAO";
+    ssaoPass.Reads(Gpu::TextureHandle(2));  // Normal
+    ssaoPass.Reads(Gpu::TextureHandle(3));  // Depth
+    ssaoPass.Writes(Gpu::TextureHandle(4)); // SSAO
+
+    Gpu::RenderGraphPass lightingPass;
+    lightingPass.name = "Lighting";
+    lightingPass.Reads(Gpu::TextureHandle(0));  // ShadowMap
+    lightingPass.Reads(Gpu::TextureHandle(1));  // Albedo
+    lightingPass.Reads(Gpu::TextureHandle(2));  // Normal
+    lightingPass.Reads(Gpu::TextureHandle(3));  // Depth
+    lightingPass.Reads(Gpu::TextureHandle(4));  // SSAO
+    lightingPass.Writes(Gpu::TextureHandle(5)); // HDR
+
+    Gpu::RenderGraphPass bloomPass;
+    bloomPass.name = "Bloom";
+    bloomPass.Reads(Gpu::TextureHandle(5));  // HDR
+    bloomPass.Writes(Gpu::TextureHandle(6)); // Bloom
+
+    Gpu::RenderGraphPass tonemapPass;
+    tonemapPass.name = "Tonemap";
+    tonemapPass.Reads(Gpu::TextureHandle(5));  // HDR
+    tonemapPass.Reads(Gpu::TextureHandle(6));  // Bloom
+    tonemapPass.Writes(Gpu::TextureHandle(7)); // Final Image
+
+    Gpu::RenderGraph->AddPass(ssaoPass);
+    Gpu::RenderGraph->AddPass(tonemapPass);
+    Gpu::RenderGraph->AddPass(shadowPass);
+    Gpu::RenderGraph->AddPass(lightingPass);
+    Gpu::RenderGraph->AddPass(gbufferPass);
+    Gpu::RenderGraph->AddPass(bloomPass);
+
+    Gpu::RenderGraph->Compile();
+
+    // Gpu::RenderGraph->AddPass();
 }
 
 void Application::Run() {
@@ -102,7 +148,7 @@ void Application::RenderScene() {
     // Find the active camera in the ECS
     glm::mat4 viewProj = glm::mat4(1.0f); // identity fallback
 
-    auto& reg = world_->Registry();
+    auto& reg  = world_->Registry();
     auto  view = reg.view<Component::Camera, Component::LocalTransform>();
 
     for (auto entity : view) {
@@ -123,7 +169,7 @@ void Application::RenderScene() {
 
         glm::mat4 viewMat = cam.ViewMatrix(transform.position);
         glm::mat4 projMat = cam.ProjectionMatrix(aspect);
-        viewProj = projMat * viewMat;
+        viewProj          = projMat * viewMat;
         break; // Use first active camera
     }
 
@@ -145,12 +191,12 @@ Gpu::DrawList Application::LoadMesh(const std::filesystem::path& path) {
         auto ibo = Gpu::Resources->CreateBuffer(Gpu::BufferDesc::SSBO(model.meshes[i].indices.size() * sizeof(uint32_t)));
 
         Vulkan::g_Uploader->UploadBuffer(Gpu::Resources->GetBuffer(vbo)->buffer,
-                                                  model.meshes[i].vertices.data(),
-                                                  model.meshes[i].vertices.size() * sizeof(Gpu::Vertex));
+                                         model.meshes[i].vertices.data(),
+                                         model.meshes[i].vertices.size() * sizeof(Gpu::Vertex));
 
         Vulkan::g_Uploader->UploadBuffer(Gpu::Resources->GetBuffer(ibo)->buffer,
-                                                  model.meshes[i].indices.data(),
-                                                  model.meshes[i].indices.size() * sizeof(uint32_t));
+                                         model.meshes[i].indices.data(),
+                                         model.meshes[i].indices.size() * sizeof(uint32_t));
 
         commands[i].vertexBufferIndex = Gpu::ResourceHeap->AllocateSSBO(vbo);
         commands[i].indexBufferIndex  = Gpu::ResourceHeap->AllocateSSBO(ibo);

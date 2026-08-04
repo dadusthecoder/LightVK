@@ -33,7 +33,7 @@ void RenderGraphClass::CollectResources() {
         for (auto& resource : pass.resources) {
             ResourceKey key{.type = resource.type, .handle = resource.handle};
             if (resource.access == Access::Write) {
-                LGT_ASSERT(resources_[key].producer != UINT32_MAX,
+                LGT_ASSERT(resources_[key].producer == UINT32_MAX,
                            "Multiple Writes to the same resource in pass {} , resource {}",
                            pass.name,
                            resource.handle);
@@ -49,28 +49,11 @@ void RenderGraphClass::CollectResources() {
 }
 
 void RenderGraphClass::ResolveDependencies() {
-    for (auto& pass : passes_) {
-
-        RenderGraphNode node;
-        node.passID = pass.passID;
-
-        for (auto& resource : pass.resources) {
-
-            if (resource.access == Access::Read)
-                node.indegree++;
-            else {
-                ResourceKey resource_key{.type = resource.type, .handle = resource.handle};
-                for (auto& child : resources_[resource_key].consumers)
-                    node.childern.push_back(child);
-            }
-        }
-
-        nodes_.push_back(std::move(node));
-    }
-
     for (auto& resource : resources_) {
-        for (auto& consumer : resource.second.consumers) {
-            edges_.push_back({consumer, resource.second.producer, resource.first.type, resource.first.handle});
+        for (auto consumer : resource.second.consumers) {
+            if (resource.second.producer != UINT32_MAX)
+                nodes_[resource.second.producer].childern.push_back(consumer);
+            nodes_[consumer].indegree++;
         }
     }
 }
@@ -84,7 +67,7 @@ void RenderGraphClass::Validate() {
                      (uint8_t)edge.type,
                      edge.handle);
 
-        LGT_ASSERT(edge.producer != UINT32_MAX, "Invalid RenderGraph");
+        // LGT_ASSERT(edge.producer != UINT32_MAX, "Invalid RenderGraph");
     }
 }
 
@@ -103,6 +86,7 @@ void RenderGraphClass::Sort() {
         execution_.push_back(nodeID);
         queue.pop_back();
         for (auto& childID : nodes_[nodeID].childern) {
+            // this statements directly mutates the graph
             if (nodes_[childID].indegree == 0 || --nodes_[childID].indegree == 0)
                 queue.push_back(childID);
         }
@@ -110,7 +94,6 @@ void RenderGraphClass::Sort() {
 }
 
 void RenderGraphClass::Compile() {
-    edges_.clear();
     resources_.clear();
 
     CollectResources();
