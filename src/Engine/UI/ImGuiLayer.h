@@ -13,7 +13,7 @@ public:
     void Shutdown();
 
 private:
-    VkDescriptorPool descriptorPool_ = VK_NULL_HANDLE;
+    VkDescriptorPool _descriptorPool = VK_NULL_HANDLE;
 };
 
 } // namespace Lgt

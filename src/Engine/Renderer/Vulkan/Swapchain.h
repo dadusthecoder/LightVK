@@ -31,26 +31,26 @@ public:
     void Recreate(GLFWwindow* window);
 
     // Accessors
-    VkSwapchainKHR                  Handle() const { return swapchain_; }
-    VkFormat                        Format() const { return format_; }
-    VkExtent2D                      Extent() const { return extent_; }
-    const std::vector<VkImage>&     Images() const { return images_; }
-    const std::vector<VkImageView>& ImageViews() const { return imageViews_; }
-    uint32_t                        ImageCount() const { return static_cast<uint32_t>(images_.size()); }
+    VkSwapchainKHR                  Handle() const { return _swapchain; }
+    VkFormat                        Format() const { return _format; }
+    VkExtent2D                      Extent() const { return _extent; }
+    const std::vector<VkImage>&     Images() const { return _images; }
+    const std::vector<VkImageView>& ImageViews() const { return _imageViews; }
+    uint32_t                        ImageCount() const { return static_cast<uint32_t>(_images.size()); }
 
     static SwapchainSupportDetails QuerySupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 private:
-    VkSwapchainKHR           swapchain_ = VK_NULL_HANDLE;
-    std::vector<VkImage>     images_;
-    std::vector<VkImageView> imageViews_;
-    VkFormat                 format_ = VK_FORMAT_UNDEFINED;
-    VkExtent2D               extent_{};
+    VkSwapchainKHR           _swapchain = VK_NULL_HANDLE;
+    std::vector<VkImage>     _images;
+    std::vector<VkImageView> _imageViews;
+    VkFormat                 _format = VK_FORMAT_UNDEFINED;
+    VkExtent2D               _extent{};
 
     // Cached for Recreate()
     VkPhysicalDevice physical_       = VK_NULL_HANDLE;
     VkDevice         logical_        = VK_NULL_HANDLE;
-    VkSurfaceKHR     surface_        = VK_NULL_HANDLE;
+    VkSurfaceKHR     _surface        = VK_NULL_HANDLE;
     uint32_t         graphicsFamily_ = 0;
     uint32_t         presentFamily_  = 0;
 

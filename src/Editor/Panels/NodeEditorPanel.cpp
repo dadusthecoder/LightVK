@@ -7,7 +7,7 @@ namespace Lgt {
 namespace Editor::Panel {
 
 void NodeEditorPanel::Init(Context* context) {
-    context_ = context;
+    _context = context;
     ed::Config config;
     config.SettingsFile = "RenderGraph.json";
     editorContext_ = ed::CreateEditor(&config);

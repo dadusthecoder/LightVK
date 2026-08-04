@@ -10,16 +10,16 @@ namespace Lgt {
 namespace Editor {
 
 void Panel::Hierarchy::Init(Context* context) {
-    context_ = context;
+    _context = context;
 }
 
 void Panel::Hierarchy::Shutdown() {}
 
 void Panel::Hierarchy::Draw() {
     ImGui::Begin("Hierarchy");
-    auto view = context_->world->Registry().view<Component::Hierarchy>();
+    auto view = _context->world->Registry().view<Component::Hierarchy>();
     for (auto handle : view) {
-        auto entity   = Entity(handle, context_->world);
+        auto entity   = Entity(handle, _context->world);
         auto entity_h = entity.Get<Component::Hierarchy>();
 
         if (!entity_h.parent)
@@ -41,7 +41,7 @@ void Panel::Hierarchy::DrawNode(Entity entity) {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     }
 
-    if (context_->selectedEntity == entity)
+    if (_context->selectedEntity == entity)
         flags |= ImGuiTreeNodeFlags_Selected;
 
     ImGui::PushID(static_cast<int>(entt::to_integral(entity.Handle())));
@@ -49,7 +49,7 @@ void Panel::Hierarchy::DrawNode(Entity entity) {
     bool is_open = ImGui::TreeNodeEx("##Node", flags, "%s", entity.Get<Component::Tag>().name.c_str());
 
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-        context_->selectedEntity = entity;
+        _context->selectedEntity = entity;
 
     if (is_open && child) {
         while (child) {

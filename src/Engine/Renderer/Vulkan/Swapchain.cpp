@@ -8,7 +8,7 @@ void VulkanSwapchain::Init(VkPhysicalDevice physical,
                            uint32_t         presentFamily) {
     physical_       = physical;
     logical_        = logical;
-    surface_        = surface;
+    _surface        = surface;
     graphicsFamily_ = graphicsFamily;
     presentFamily_  = presentFamily;
 
@@ -17,13 +17,13 @@ void VulkanSwapchain::Init(VkPhysicalDevice physical,
 }
 
 void VulkanSwapchain::Cleanup(VkDevice logical) {
-    for (auto iv : imageViews_)
+    for (auto iv : _imageViews)
         vkDestroyImageView(logical, iv, nullptr);
-    imageViews_.clear();
+    _imageViews.clear();
 
-    vkDestroySwapchainKHR(logical, swapchain_, nullptr);
-    swapchain_ = VK_NULL_HANDLE;
-    images_.clear();
+    vkDestroySwapchainKHR(logical, _swapchain, nullptr);
+    _swapchain = VK_NULL_HANDLE;
+    _images.clear();
 }
 
 void VulkanSwapchain::Recreate(GLFWwindow* window) {
@@ -33,7 +33,7 @@ void VulkanSwapchain::Recreate(GLFWwindow* window) {
 }
 
 void VulkanSwapchain::createSwapchain(GLFWwindow* window) {
-    auto support = QuerySupport(physical_, surface_);
+    auto support = QuerySupport(physical_, _surface);
     auto sf      = chooseSurfaceFormat(support.formats);
     auto pm      = choosePresentMode(support.presentModes);
     auto ext     = chooseExtent(support.capabilities, window);
@@ -44,7 +44,7 @@ void VulkanSwapchain::createSwapchain(GLFWwindow* window) {
 
     VkSwapchainCreateInfoKHR ci{};
     ci.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    ci.surface          = surface_;
+    ci.surface          = _surface;
     ci.minImageCount    = imageCount;
     ci.imageFormat      = sf.format;
     ci.imageColorSpace  = sf.colorSpace;
@@ -67,26 +67,26 @@ void VulkanSwapchain::createSwapchain(GLFWwindow* window) {
     ci.clipped        = VK_TRUE;
     ci.oldSwapchain   = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(logical_, &ci, nullptr, &swapchain_) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(logical_, &ci, nullptr, &_swapchain) != VK_SUCCESS)
         throw std::runtime_error("vkCreateSwapchainKHR failed");
 
     uint32_t count = 0;
-    vkGetSwapchainImagesKHR(logical_, swapchain_, &count, nullptr);
-    images_.resize(count);
-    vkGetSwapchainImagesKHR(logical_, swapchain_, &count, images_.data());
+    vkGetSwapchainImagesKHR(logical_, _swapchain, &count, nullptr);
+    _images.resize(count);
+    vkGetSwapchainImagesKHR(logical_, _swapchain, &count, _images.data());
 
-    format_ = sf.format;
-    extent_ = ext;
+    _format = sf.format;
+    _extent = ext;
 }
 
 void VulkanSwapchain::createImageViews() {
-    imageViews_.resize(images_.size());
-    for (size_t i = 0; i < images_.size(); ++i) {
+    _imageViews.resize(_images.size());
+    for (size_t i = 0; i < _images.size(); ++i) {
         VkImageViewCreateInfo ci{};
         ci.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        ci.image                           = images_[i];
+        ci.image                           = _images[i];
         ci.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-        ci.format                          = format_;
+        ci.format                          = _format;
         ci.components.r                    = VK_COMPONENT_SWIZZLE_IDENTITY;
         ci.components.g                    = VK_COMPONENT_SWIZZLE_IDENTITY;
         ci.components.b                    = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -97,7 +97,7 @@ void VulkanSwapchain::createImageViews() {
         ci.subresourceRange.baseArrayLayer = 0;
         ci.subresourceRange.layerCount     = 1;
 
-        if (vkCreateImageView(logical_, &ci, nullptr, &imageViews_[i]) != VK_SUCCESS)
+        if (vkCreateImageView(logical_, &ci, nullptr, &_imageViews[i]) != VK_SUCCESS)
             throw std::runtime_error("vkCreateImageView failed");
     }
 }

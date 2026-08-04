@@ -6,11 +6,11 @@ namespace Lgt {
 namespace Editor {
 
 void Editor::Init(World* world) {
-    context_.world = world;
-    panel_hirearchy_.Init(&context_);
-    panel_viewport_.Init(&context_);
-    panel_node_editor_.Init(&context_);
-    panel_inspector_.Init(&context_);
+    _context.world = world;
+    _panel_hirearchy.Init(&_context);
+    _panel_viewport.Init(&_context);
+    _panel_node_editor.Init(&_context);
+    _panel_inspector.Init(&_context);
 }
 
 void Editor::Update() {
@@ -34,20 +34,20 @@ void Editor::Update() {
     ImGui::DockSpace(ImGui::GetID("MainDockSpace"), ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 
     // Editor panels
-    panel_hirearchy_.Draw();
-    panel_viewport_.Draw();
-    panel_node_editor_.Draw();
-    panel_inspector_.Draw();
+    _panel_hirearchy.Draw();
+    _panel_viewport.Draw();
+    _panel_node_editor.Draw();
+    _panel_inspector.Draw();
     ImGui::ShowDemoWindow();
 
     ImGui::End();
 }
 
 void Editor::Shutdown() {
-    panel_inspector_.Shutdown();
-    panel_node_editor_.Shutdown();
-    panel_viewport_.Shutdown();
-    panel_hirearchy_.Shutdown();
+    _panel_inspector.Shutdown();
+    _panel_node_editor.Shutdown();
+    _panel_viewport.Shutdown();
+    _panel_hirearchy.Shutdown();
 }
 } // namespace Editor
 

@@ -159,15 +159,15 @@ public:
     TextureHandle CreateTexture(const TextureDesc& desc);
     void          DestroyTexture(TextureHandle handle);
 
-    Texture* GetTexture(TextureHandle handle) { return textures_.Get(handle); }
-    Buffer*  GetBuffer(BufferHandle handle) { return buffers_.Get(handle); }
+    Texture* GetTexture(TextureHandle handle) { return _textures.Get(handle); }
+    Buffer*  GetBuffer(BufferHandle handle) { return _buffers.Get(handle); }
 
     BufferHandle CreateBuffer(const BufferDesc& desc);
     void         DestroyBuffer(BufferHandle handle);
 
 private:
-    ResourcePool<Texture, TextureHandle> textures_;
-    ResourcePool<Buffer, BufferHandle>   buffers_;
+    ResourcePool<Texture, TextureHandle> _textures;
+    ResourcePool<Buffer, BufferHandle>   _buffers;
 };
 
 

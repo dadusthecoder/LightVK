@@ -7,7 +7,7 @@
 namespace Lgt::Editor::Panel {
 
 void InspectorPanel::Init(Context* context) {
-    context_ = context;
+    _context = context;
 }
 
 void InspectorPanel::Shutdown() {
@@ -16,7 +16,7 @@ void InspectorPanel::Shutdown() {
 void InspectorPanel::Draw() {
     ImGui::Begin("Inspector");
 
-    Entity entity = context_->selectedEntity;
+    Entity entity = _context->selectedEntity;
     
     if (!entity.IsValid()) {
         ImGui::TextDisabled("No Entity Selected");

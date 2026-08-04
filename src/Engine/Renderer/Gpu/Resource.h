@@ -55,29 +55,29 @@ public:
     using ValueType = uint32_t;
 
     ResourcePool() {
-        resources_.emplace_back();
-        generations_.emplace_back(1);
-        alive_.emplace_back(false);
+        _resources.emplace_back();
+        _generations.emplace_back(1);
+        _alive.emplace_back(false);
     }
 
     Handle Allocate(ResourceType resource) {
         ValueType index;
         Handle    handle;
 
-        if (freelist_.empty()) {
-            index = static_cast<ValueType>(resources_.size());
-            resources_.push_back(resource);
-            generations_.push_back(1);
-            alive_.push_back(true);
+        if (_freelist.empty()) {
+            index = static_cast<ValueType>(_resources.size());
+            _resources.push_back(resource);
+            _generations.push_back(1);
+            _alive.push_back(true);
         } else {
-            index = freelist_.back();
-            freelist_.pop_back();
-            resources_[index] = resource;
-            ++generations_[index];
-            alive_[index] = true;
+            index = _freelist.back();
+            _freelist.pop_back();
+            _resources[index] = resource;
+            ++_generations[index];
+            _alive[index] = true;
         }
 
-        uint64_t raw = (static_cast<uint64_t>(generations_[index]) << 32) | static_cast<uint64_t>(index);
+        uint64_t raw = (static_cast<uint64_t>(_generations[index]) << 32) | static_cast<uint64_t>(index);
 
         handle.value = raw;
         return handle;
@@ -90,13 +90,13 @@ public:
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        LGT_ASSERT(index < resources_.size() && generations_[index] == gen,
+        LGT_ASSERT(index < _resources.size() && _generations[index] == gen,
                    "ResourcePool::free: stale or foreign handle detected");
 
         handle.value      = 0;
-        resources_[index] = ResourceType{};
-        alive_[index]     = false;
-        freelist_.push_back(index);
+        _resources[index] = ResourceType{};
+        _alive[index]     = false;
+        _freelist.push_back(index);
     }
 
     ResourceType* Get(const Handle& handle) {
@@ -109,35 +109,35 @@ public:
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        if (!(index < resources_.size() && generations_[index] == gen)) {
+        if (!(index < _resources.size() && _generations[index] == gen)) {
             LIGHTVK_WARN("stale or foreign handle detected");
             return nullptr;
         }
 
-        return &resources_[index];
+        return &_resources[index];
     }
 
     template <typename Fn> void ForEach(Fn&& fn) {
-        for (size_t i = 1; i < resources_.size(); ++i) {
-            if (generations_[i] != 0) {
-                fn(resources_[i]);
+        for (size_t i = 1; i < _resources.size(); ++i) {
+            if (_generations[i] != 0) {
+                fn(_resources[i]);
             }
         }
     }
 
     template <typename Fn> void ForEachAlive(Fn&& fn) {
-        for (ValueType i = 1; i < resources_.size(); ++i) {
-            if (!alive_[i])
+        for (ValueType i = 1; i < _resources.size(); ++i) {
+            if (!_alive[i])
                 continue;
 
-            uint32_t gen = generations_[i];
+            uint32_t gen = _generations[i];
 
             uint64_t raw = (static_cast<uint64_t>(gen) << 32) | static_cast<uint64_t>(i);
 
             Handle handle;
             handle.value = raw;
 
-            fn(resources_[i], handle);
+            fn(_resources[i], handle);
         }
     }
 
@@ -149,24 +149,24 @@ public:
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        return index < resources_.size() && generations_[index] == gen;
+        return index < _resources.size() && _generations[index] == gen;
     }
 
     void Clear() {
-        resources_.clear();
-        generations_.clear();
-        freelist_.clear();
-        alive_.clear();
-        resources_.emplace_back();
-        generations_.emplace_back(1);
-        alive_.emplace_back(false);
+        _resources.clear();
+        _generations.clear();
+        _freelist.clear();
+        _alive.clear();
+        _resources.emplace_back();
+        _generations.emplace_back(1);
+        _alive.emplace_back(false);
     }
 
 private:
-    std::vector<ResourceType> resources_;
-    std::vector<ValueType>    generations_;
-    std::vector<bool>         alive_;
-    std::vector<ValueType>    freelist_;
+    std::vector<ResourceType> _resources;
+    std::vector<ValueType>    _generations;
+    std::vector<bool>         _alive;
+    std::vector<ValueType>    _freelist;
 };
 
 // TextureHandle createTexture();

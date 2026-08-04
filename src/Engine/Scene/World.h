@@ -27,13 +27,13 @@ public:
 
     entt::registry&       Registry() { return m_Registry; }
     const entt::registry& Registry() const { return m_Registry; }
-    SceneGraph&           Graph() { return graph_; }
+    SceneGraph&           Graph() { return _graph; }
     Gpu::DrawList         DrawList();
 
 private:
     System::Transform transform_sys;
     entt::registry    m_Registry;
-    SceneGraph        graph_;
+    SceneGraph        _graph;
 };
 
 } // namespace Lgt

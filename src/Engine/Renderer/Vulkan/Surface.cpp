@@ -2,11 +2,11 @@
 #include "Surface.h"
 
 void VulkanSurface::Init(VkInstance instance, GLFWwindow* window) {
-    instance_ = instance;
-    if (glfwCreateWindowSurface(instance_, window, nullptr, &surface_) != VK_SUCCESS)
+    _instance = instance;
+    if (glfwCreateWindowSurface(_instance, window, nullptr, &_surface) != VK_SUCCESS)
         throw std::runtime_error("glfwCreateWindowSurface failed");
 }
 
 void VulkanSurface::ShutDown() {
-    vkDestroySurfaceKHR(instance_, surface_, nullptr);
+    vkDestroySurfaceKHR(_instance, _surface, nullptr);
 }

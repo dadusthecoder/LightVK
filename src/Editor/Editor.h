@@ -17,14 +17,14 @@ public:
     void Update();
     void Shutdown();
 
-    Context* GetContext() { return &context_; }
+    Context* GetContext() { return &_context; }
 
 private:
-    Context          context_;
-    Panel::Hierarchy panel_hirearchy_;
-    Panel::Viewport  panel_viewport_;
-    Panel::NodeEditorPanel panel_node_editor_;
-    Panel::InspectorPanel  panel_inspector_;
+    Context          _context;
+    Panel::Hierarchy _panel_hirearchy;
+    Panel::Viewport  _panel_viewport;
+    Panel::NodeEditorPanel _panel_node_editor;
+    Panel::InspectorPanel  _panel_inspector;
 };
 
 } // namespace Editor

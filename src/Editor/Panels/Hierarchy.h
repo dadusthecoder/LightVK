@@ -12,7 +12,7 @@ public:
 
 private:
     void     DrawNode(Entity entity);
-    Context* context_ = nullptr;
+    Context* _context = nullptr;
 };
 } // namespace Editor::Panel
 

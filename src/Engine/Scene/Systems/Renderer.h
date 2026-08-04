@@ -14,6 +14,6 @@ public:
 
 private:
     void   BuildDrawlist();
-    World* world_ = nullptr;
+    World* _world = nullptr;
 };
 } // namespace Lgt::System

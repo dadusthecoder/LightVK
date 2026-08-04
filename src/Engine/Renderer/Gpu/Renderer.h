@@ -51,42 +51,42 @@ public:
     void EndFrame();
 
     void ResizeSceneTarget(uint32_t width, uint32_t height);
-    VkDescriptorSet GetSceneTexture() const { return sceneTarget_.imguiDescriptor; }
-    uint32_t GetSceneWidth() const { return sceneTarget_.width; }
-    uint32_t GetSceneHeight() const { return sceneTarget_.height; }
+    VkDescriptorSet GetSceneTexture() const { return _sceneTarget.imguiDescriptor; }
+    uint32_t GetSceneWidth() const { return _sceneTarget.width; }
+    uint32_t GetSceneHeight() const { return _sceneTarget.height; }
 
-    VkCommandBuffer GetCurrentCommandBuffer() const { return commandBuffers_[currentFrame_]; }
-    VkCommandBuffer GetUICommandBuffer() const { return uiCommandBuffers_[currentFrame_]; }
-    VkFormat        SwapchainFormat() const { return swapchain_.Format(); }
+    VkCommandBuffer GetCurrentCommandBuffer() const { return _commandBuffers[_currentFrame]; }
+    VkCommandBuffer GetUICommandBuffer() const { return _uiCommandBuffers[_currentFrame]; }
+    VkFormat        SwapchainFormat() const { return _swapchain.Format(); }
 
 private:
-    GLFWwindow* window_ = nullptr;
+    GLFWwindow* _window = nullptr;
 
-    VulkanSwapchain swapchain_;
-    OffscreenTarget sceneTarget_;
+    VulkanSwapchain _swapchain;
+    OffscreenTarget _sceneTarget;
 
     // Frame resources
-    VkCommandPool                commandPool_ = VK_NULL_HANDLE;
-    std::vector<VkCommandBuffer> commandBuffers_;
-    std::vector<VkCommandBuffer> uiCommandBuffers_;
-    std::vector<BufferHandle>    frameUBO_;
+    VkCommandPool                _commandPool = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> _commandBuffers;
+    std::vector<VkCommandBuffer> _uiCommandBuffers;
+    std::vector<BufferHandle>    _frameUBO;
 
     // Swapchain depth buffers
-    std::vector<VkImage>         swapchainDepthImages_;
-    std::vector<VmaAllocation>   swapchainDepthAllocs_;
-    std::vector<VkImageView>     swapchainDepthViews_;
+    std::vector<VkImage>         _swapchainDepthImages;
+    std::vector<VmaAllocation>   _swapchainDepthAllocs;
+    std::vector<VkImageView>     _swapchainDepthViews;
 
     // Sync
-    std::vector<VkSemaphore> imageAvailableSems_;
-    std::vector<VkSemaphore> renderFinishedSems_;
-    std::vector<VkFence>     inFlightFences_;
+    std::vector<VkSemaphore> _imageAvailableSems;
+    std::vector<VkSemaphore> _renderFinishedSems;
+    std::vector<VkFence>     _inFlightFences;
 
-    uint32_t currentFrame_       = 0;
-    uint32_t currentImageIndex_  = 0;
+    uint32_t _currentFrame       = 0;
+    uint32_t _currentImageIndex  = 0;
     bool     framebufferResized_ = false;
 
     VkPipeline   TraingleGfxPipeline_ = VK_NULL_HANDLE;
-    BufferHandle vertSSBO_;
+    BufferHandle _vertSSBO;
     uint32_t     vertGpuIndex = 0;
 
     void        createCommandPool();

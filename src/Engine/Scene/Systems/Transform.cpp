@@ -6,15 +6,15 @@ namespace Lgt {
 
 System::Transform::Transform(World* world) {
     LGT_ASSERT(world, "");
-    world_ = world;
+    _world = world;
 }
 
 void System::Transform::Update() {
 
-    const auto& view = world_->Registry().view<Component::Hierarchy, Component::WorldTransform, Component::LocalTransform>();
+    const auto& view = _world->Registry().view<Component::Hierarchy, Component::WorldTransform, Component::LocalTransform>();
 
     for (auto e : view) {
-        Entity entity(e, world_);
+        Entity entity(e, _world);
         auto&  entity_h = entity.Get<Component::Hierarchy>();
 
         if (!entity_h.parent.IsValid())

@@ -7,12 +7,12 @@ class RateLimitedSink : public spdlog::sinks::base_sink<std::mutex> {
 public:
     explicit RateLimitedSink(std::shared_ptr<spdlog::sinks::sink> wrapped_sink,
                              std::chrono::milliseconds            rate_limit_interval = std::chrono::milliseconds(100))
-        : wrapped_sink_(wrapped_sink),
-          rate_limit_interval_(rate_limit_interval) {}
+        : _wrapped_sink(wrapped_sink),
+          _rate_limit_interval(rate_limit_interval) {}
 
     void set_rate_limit(std::chrono::milliseconds interval) {
         std::lock_guard<std::mutex> lock(base_sink<std::mutex>::mutex_);
-        rate_limit_interval_ = interval;
+        _rate_limit_interval = interval;
     }
 
 protected:
@@ -20,87 +20,87 @@ protected:
         auto        now     = std::chrono::steady_clock::now();
         std::string msg_key = std::string(msg.payload.data(), msg.payload.size());
 
-        auto it = last_log_time_.find(msg_key);
+        auto it = _last_log_time.find(msg_key);
 
         // Always allow errors and critical
         if (msg.level >= spdlog::level::err) {
-            wrapped_sink_->log(msg);
-            last_log_time_[msg_key] = now;
+            _wrapped_sink->log(msg);
+            _last_log_time[msg_key] = now;
             return;
         }
 
         // Rate limit other messages
-        if (it == last_log_time_.end() || (now - it->second) >= rate_limit_interval_) {
-            auto suppress_it = suppressed_count_.find(msg_key);
-            if (suppress_it != suppressed_count_.end() && suppress_it->second > 0) {
+        if (it == _last_log_time.end() || (now - it->second) >= _rate_limit_interval) {
+            auto suppress_it = _suppressed_count.find(msg_key);
+            if (suppress_it != _suppressed_count.end() && suppress_it->second > 0) {
                 spdlog::details::log_msg modified_msg     = msg;
                 std::string              modified_payload = fmt::format("{} (+{} suppressed)", msg_key, suppress_it->second);
                 modified_msg.payload                      = modified_payload;
-                wrapped_sink_->log(modified_msg);
-                suppressed_count_[msg_key] = 0;
+                _wrapped_sink->log(modified_msg);
+                _suppressed_count[msg_key] = 0;
             } else {
-                wrapped_sink_->log(msg);
+                _wrapped_sink->log(msg);
             }
 
-            last_log_time_[msg_key] = now;
+            _last_log_time[msg_key] = now;
         } else {
-            suppressed_count_[msg_key]++;
+            _suppressed_count[msg_key]++;
         }
     }
 
-    void flush_() override { wrapped_sink_->flush(); }
+    void flush_() override { _wrapped_sink->flush(); }
 
-    void set_pattern_(const std::string& pattern) override { wrapped_sink_->set_pattern(pattern); }
+    void set_pattern_(const std::string& pattern) override { _wrapped_sink->set_pattern(pattern); }
 
     void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter) override {
-        wrapped_sink_->set_formatter(std::move(sink_formatter));
+        _wrapped_sink->set_formatter(std::move(sink_formatter));
     }
 
 private:
-    std::shared_ptr<spdlog::sinks::sink>                                   wrapped_sink_;
-    std::chrono::milliseconds                                              rate_limit_interval_;
-    std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_log_time_;
-    std::unordered_map<std::string, uint32_t>                              suppressed_count_;
+    std::shared_ptr<spdlog::sinks::sink>                                   _wrapped_sink;
+    std::chrono::milliseconds                                              _rate_limit_interval;
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point> _last_log_time;
+    std::unordered_map<std::string, uint32_t>                              _suppressed_count;
 };
 
 // Custom sink with level-specific patterns
 class LevelPatternSink : public spdlog::sinks::base_sink<std::mutex> {
 public:
     explicit LevelPatternSink(std::shared_ptr<spdlog::sinks::sink> wrapped_sink)
-        : wrapped_sink_(wrapped_sink) {
-        patterns_[spdlog::level::trace]    = "[%T] [TRACE] %v";
-        patterns_[spdlog::level::debug]    = "[%T] [DEBUG] %v";
-        patterns_[spdlog::level::info]     = "%^[%T] %v%$";
-        patterns_[spdlog::level::warn]     = "%^[%T] [WARN] [%!:%#] %v%$";
-        patterns_[spdlog::level::err]      = "%^[%T] [ERROR] [%!:%#] %v%$";
-        patterns_[spdlog::level::critical] = "%^[%T] [CRITICAL] [%!:%#] %v%$";
+        : _wrapped_sink(wrapped_sink) {
+        _patterns[spdlog::level::trace]    = "[%T] [TRACE] %v";
+        _patterns[spdlog::level::debug]    = "[%T] [DEBUG] %v";
+        _patterns[spdlog::level::info]     = "%^[%T] %v%$";
+        _patterns[spdlog::level::warn]     = "%^[%T] [WARN] [%!:%#] %v%$";
+        _patterns[spdlog::level::err]      = "%^[%T] [ERROR] [%!:%#] %v%$";
+        _patterns[spdlog::level::critical] = "%^[%T] [CRITICAL] [%!:%#] %v%$";
     }
 
     void set_pattern_for_level(spdlog::level::level_enum level, const std::string& pattern) {
         std::lock_guard<std::mutex> lock(base_sink<std::mutex>::mutex_);
-        patterns_[level] = pattern;
+        _patterns[level] = pattern;
     }
 
 protected:
     void sink_it_(const spdlog::details::log_msg& msg) override {
-        auto it = patterns_.find(msg.level);
-        if (it != patterns_.end()) {
-            wrapped_sink_->set_pattern(it->second);
+        auto it = _patterns.find(msg.level);
+        if (it != _patterns.end()) {
+            _wrapped_sink->set_pattern(it->second);
         }
-        wrapped_sink_->log(msg);
+        _wrapped_sink->log(msg);
     }
 
-    void flush_() override { wrapped_sink_->flush(); }
+    void flush_() override { _wrapped_sink->flush(); }
 
-    void set_pattern_(const std::string& pattern) override { wrapped_sink_->set_pattern(pattern); }
+    void set_pattern_(const std::string& pattern) override { _wrapped_sink->set_pattern(pattern); }
 
     void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter) override {
-        wrapped_sink_->set_formatter(std::move(sink_formatter));
+        _wrapped_sink->set_formatter(std::move(sink_formatter));
     }
 
 private:
-    std::shared_ptr<spdlog::sinks::sink>                       wrapped_sink_;
-    std::unordered_map<spdlog::level::level_enum, std::string> patterns_;
+    std::shared_ptr<spdlog::sinks::sink>                       _wrapped_sink;
+    std::unordered_map<spdlog::level::level_enum, std::string> _patterns;
 };
 
 std::shared_ptr<spdlog::logger> Logger::s_CoreLogger;

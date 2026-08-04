@@ -13,7 +13,7 @@ void ResourceManager::Init() {
 
 void ResourceManager::Shutdown() {
     // Destroy all alive textures
-    textures_.ForEachAlive([this](Texture& tex, TextureHandle handle) {
+    _textures.ForEachAlive([this](Texture& tex, TextureHandle handle) {
         if (tex.defaultView != VK_NULL_HANDLE) {
             vkDestroyImageView(Vulkan::g_Device->Logical(), tex.defaultView, nullptr);
         }
@@ -21,14 +21,14 @@ void ResourceManager::Shutdown() {
             Vulkan::g_Allocator->destroyImage(tex.image, tex.allocation);
         }
     });
-    textures_.Clear();
+    _textures.Clear();
 
-    buffers_.ForEachAlive([this](Buffer& buf, BufferHandle handle) {
+    _buffers.ForEachAlive([this](Buffer& buf, BufferHandle handle) {
         if (buf.mapped)
             Vulkan::g_Allocator->unmap(buf.allocation);
         Vulkan::g_Allocator->destroyBuffer(buf.buffer, buf.allocation);
     });
-    buffers_.Clear();
+    _buffers.Clear();
 
     LIGHTVK_INFO("ResourceManager Shutdown");
 }
@@ -83,14 +83,14 @@ TextureHandle ResourceManager::CreateTexture(const TextureDesc& desc) {
         return TextureHandle();
     }
 
-    return textures_.Allocate(tex);
+    return _textures.Allocate(tex);
 }
 
 void ResourceManager::DestroyTexture(TextureHandle handle) {
     if (!handle.IsValid())
         return;
 
-    Texture* tex = textures_.Get(handle);
+    Texture* tex = _textures.Get(handle);
     if (!tex)
         return;
 
@@ -101,7 +101,7 @@ void ResourceManager::DestroyTexture(TextureHandle handle) {
         Vulkan::g_Allocator->destroyImage(tex->image, tex->allocation);
     }
 
-    textures_.Free(handle);
+    _textures.Free(handle);
 }
 
 BufferHandle ResourceManager::CreateBuffer(const BufferDesc& desc) {
@@ -143,7 +143,7 @@ BufferHandle ResourceManager::CreateBuffer(const BufferDesc& desc) {
             buffer.mapped = Vulkan::g_Allocator->map(buffer.allocation);
         }
         LIGHTVK_INFO("Created Buffer size: {}", desc.size);
-        return buffers_.Allocate(buffer);
+        return _buffers.Allocate(buffer);
     }
 
     LIGHTVK_CRITICAL("Failed to create Buffer");
@@ -154,7 +154,7 @@ void ResourceManager::DestroyBuffer(BufferHandle handle) {
     if (!handle.IsValid())
         return;
 
-    Buffer* buf = buffers_.Get(handle);
+    Buffer* buf = _buffers.Get(handle);
     if (!buf)
         return;
 
@@ -162,7 +162,7 @@ void ResourceManager::DestroyBuffer(BufferHandle handle) {
         Vulkan::g_Allocator->unmap(buf->allocation);
 
     Vulkan::g_Allocator->destroyBuffer(buf->buffer, buf->allocation);
-    buffers_.Free(handle);
+    _buffers.Free(handle);
 }
 
 } // namespace Lgt::Gpu

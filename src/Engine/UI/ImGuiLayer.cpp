@@ -30,7 +30,7 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
     pool_info.poolSizeCount                 = (uint32_t)IM_ARRAYSIZE(pool_sizes);
     pool_info.pPoolSizes                    = pool_sizes;
 
-    if (vkCreateDescriptorPool(Vulkan::g_Device->Logical(), &pool_info, nullptr, &descriptorPool_) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(Vulkan::g_Device->Logical(), &pool_info, nullptr, &_descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create descriptor pool for ImGui!");
     }
 
@@ -53,7 +53,7 @@ void ImGuiLayer::Init(GLFWwindow* window, VkFormat colorFormat) {
     init_info.QueueFamily               = Vulkan::g_Device->GraphicsFamily();
     init_info.Queue                     = Vulkan::g_Device->GraphicsQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
-    init_info.DescriptorPool            = descriptorPool_;
+    init_info.DescriptorPool            = _descriptorPool;
     init_info.MinImageCount             = 3;
     init_info.ImageCount                = 3;
     init_info.Allocator                 = nullptr;
@@ -123,9 +123,9 @@ void ImGuiLayer::Shutdown() {
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
 
-        if (descriptorPool_ != VK_NULL_HANDLE) {
-            vkDestroyDescriptorPool(Vulkan::g_Device->Logical(), descriptorPool_, nullptr);
-            descriptorPool_ = VK_NULL_HANDLE;
+        if (_descriptorPool != VK_NULL_HANDLE) {
+            vkDestroyDescriptorPool(Vulkan::g_Device->Logical(), _descriptorPool, nullptr);
+            _descriptorPool = VK_NULL_HANDLE;
         }
     }
 }

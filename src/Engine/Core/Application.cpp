@@ -17,6 +17,9 @@
 
 namespace Lgt {
 
+void OnPassExecute(Gpu::RenderGraphPass* pass, void* userdata) {
+    LIGHTVK_INFO("Executing Pass {}", pass->name);
+}
 void Application::Init() {
 
     LOG_INIT();
@@ -30,36 +33,39 @@ void Application::Init() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window_ = glfwCreateWindow(WIDTH, HEIGHT, "LightVK Engine", nullptr, nullptr);
+    _window = glfwCreateWindow(WIDTH, HEIGHT, "LightVK Engine", nullptr, nullptr);
 
-    Vulkan::Init(window_);
-    Gpu::Init(window_);
+    Vulkan::Init(_window);
+    Gpu::Init(_window);
 
-    timer_ = std::make_unique<Timer>();
-    world_ = std::make_unique<World>();
-    input_ = std::make_unique<InputManager>(window_);
+    _timer = std::make_unique<Timer>();
+    _world = std::make_unique<World>();
+    _input = std::make_unique<InputManager>(_window);
 
     // ImGui is always initialized (it lives in the engine),
     // but the UI pass is only executed if EnableUi() was called.
-    imguiLayer_ = std::make_unique<ImGuiLayer>();
-    imguiLayer_->Init(window_, Gpu::Renderer->SwapchainFormat());
+    _imguiLayer = std::make_unique<ImGuiLayer>();
+    _imguiLayer->Init(_window, Gpu::Renderer->SwapchainFormat());
 
     OnInit();
     Gpu::RenderGraphPass shadowPass;
     shadowPass.name = "Shadow";
     shadowPass.Writes(Gpu::TextureHandle(0)); // ShadowMap
+    shadowPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass gbufferPass;
     gbufferPass.name = "GBuffer";
     gbufferPass.Writes(Gpu::TextureHandle(1)); // Albedo
     gbufferPass.Writes(Gpu::TextureHandle(2)); // Normal
     gbufferPass.Writes(Gpu::TextureHandle(3)); // Depth
+    gbufferPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass ssaoPass;
     ssaoPass.name = "SSAO";
     ssaoPass.Reads(Gpu::TextureHandle(2));  // Normal
     ssaoPass.Reads(Gpu::TextureHandle(3));  // Depth
     ssaoPass.Writes(Gpu::TextureHandle(4)); // SSAO
+    ssaoPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass lightingPass;
     lightingPass.name = "Lighting";
@@ -69,17 +75,20 @@ void Application::Init() {
     lightingPass.Reads(Gpu::TextureHandle(3));  // Depth
     lightingPass.Reads(Gpu::TextureHandle(4));  // SSAO
     lightingPass.Writes(Gpu::TextureHandle(5)); // HDR
+    lightingPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass bloomPass;
     bloomPass.name = "Bloom";
     bloomPass.Reads(Gpu::TextureHandle(5));  // HDR
     bloomPass.Writes(Gpu::TextureHandle(6)); // Bloom
+    bloomPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass tonemapPass;
     tonemapPass.name = "Tonemap";
     tonemapPass.Reads(Gpu::TextureHandle(5));  // HDR
     tonemapPass.Reads(Gpu::TextureHandle(6));  // Bloom
     tonemapPass.Writes(Gpu::TextureHandle(7)); // Final Image
+    tonemapPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraph->AddPass(ssaoPass);
     Gpu::RenderGraph->AddPass(tonemapPass);
@@ -89,21 +98,20 @@ void Application::Init() {
     Gpu::RenderGraph->AddPass(bloomPass);
 
     Gpu::RenderGraph->Compile();
-
-    // Gpu::RenderGraph->AddPass();
+    Gpu::RenderGraph->Execute();
 }
 
 void Application::Run() {
     uint32_t currentFrame = 0;
 
-    while (!glfwWindowShouldClose(window_)) {
+    while (!glfwWindowShouldClose(_window)) {
 
-        timer_->Tick();
-        input_->ResetFrame();
-        world_->Update(timer_->DeltaTime());
+        _timer->Tick();
+        _input->ResetFrame();
+        _world->Update(_timer->DeltaTime());
 
         // App logic hook — pure game logic, no rendering
-        OnUpdate(timer_->DeltaTime());
+        OnUpdate(_timer->DeltaTime());
 
         if (Gpu::Renderer->BeginFrame(currentFrame)) {
 
@@ -127,20 +135,20 @@ void Application::Run() {
 
 void Application::Shutdown() {
     OnShutdown();
-    imguiLayer_->Shutdown();
+    _imguiLayer->Shutdown();
     Gpu::Shutdown();
     Vulkan::Shutdown();
 }
 
 void Application::BeginUi() {
     auto uiCmd = Gpu::Renderer->GetUICommandBuffer();
-    imguiLayer_->BeginFrame();
+    _imguiLayer->BeginFrame();
     Gpu::Renderer->BeginRendering(uiCmd, false);
 }
 
 void Application::EndUi() {
     auto uiCmd = Gpu::Renderer->GetUICommandBuffer();
-    imguiLayer_->EndFrame(uiCmd);
+    _imguiLayer->EndFrame(uiCmd);
     Gpu::Renderer->EndRendering(uiCmd);
 }
 
@@ -148,7 +156,7 @@ void Application::RenderScene() {
     // Find the active camera in the ECS
     glm::mat4 viewProj = glm::mat4(1.0f); // identity fallback
 
-    auto& reg  = world_->Registry();
+    auto& reg  = _world->Registry();
     auto  view = reg.view<Component::Camera, Component::LocalTransform>();
 
     for (auto entity : view) {
@@ -174,7 +182,7 @@ void Application::RenderScene() {
     }
 
     // Render all loaded meshes
-    for (auto& mesh : meshes_) {
+    for (auto& mesh : _meshes) {
         Gpu::Renderer->Render(&mesh, viewProj);
     }
 }
@@ -210,7 +218,7 @@ Gpu::DrawList Application::LoadMesh(const std::filesystem::path& path) {
     Vulkan::g_Uploader->Flush();
 
     // Store internally for RenderScene()
-    meshes_.push_back(drawList);
+    _meshes.push_back(drawList);
 
     return drawList;
 }

@@ -6,7 +6,7 @@ namespace Lgt {
 namespace Editor::Panel {
 
 void Viewport::Init(Context* context) {
-    context_ = context;
+    _context = context;
 }
 
 void Viewport::Shutdown() {
@@ -16,9 +16,9 @@ void Viewport::Draw() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0, 0});
     ImGui::Begin("Viewport");
 
-    if (context_) {
-        context_->isViewportHovered = ImGui::IsWindowHovered();
-        context_->isViewportFocused = ImGui::IsWindowFocused();
+    if (_context) {
+        _context->isViewportHovered = ImGui::IsWindowHovered();
+        _context->isViewportFocused = ImGui::IsWindowFocused();
     }
 
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();

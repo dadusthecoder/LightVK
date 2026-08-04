@@ -18,11 +18,11 @@ void VulkanInstance::Init(bool enableValidation, const std::vector<const char*>&
 void VulkanInstance::ShutDown() {
     if (validation_ && debugMessenger_ != VK_NULL_HANDLE) {
         auto fn = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-            vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT"));
+            vkGetInstanceProcAddr(_instance, "vkDestroyDebugUtilsMessengerEXT"));
         if (fn)
-            fn(instance_, debugMessenger_, nullptr);
+            fn(_instance, debugMessenger_, nullptr);
     }
-    vkDestroyInstance(instance_, nullptr);
+    vkDestroyInstance(_instance, nullptr);
 }
 
 void VulkanInstance::createInstance(const std::vector<const char*>& layers) {
@@ -49,7 +49,7 @@ void VulkanInstance::createInstance(const std::vector<const char*>& layers) {
         ci.pNext               = &debugCI;
     }
 
-    if (vkCreateInstance(&ci, nullptr, &instance_) != VK_SUCCESS)
+    if (vkCreateInstance(&ci, nullptr, &_instance) != VK_SUCCESS)
         throw std::runtime_error("vkCreateInstance failed");
 }
 
@@ -58,8 +58,8 @@ void VulkanInstance::setupDebugMessenger() {
         return;
     auto ci = makeDebugCI();
     auto fn =
-        reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance_, "vkCreateDebugUtilsMessengerEXT"));
-    if (!fn || fn(instance_, &ci, nullptr, &debugMessenger_) != VK_SUCCESS)
+        reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(_instance, "vkCreateDebugUtilsMessengerEXT"));
+    if (!fn || fn(_instance, &ci, nullptr, &debugMessenger_) != VK_SUCCESS)
         throw std::runtime_error("Failed to create debug messenger");
 }
 

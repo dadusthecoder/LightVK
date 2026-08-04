@@ -15,6 +15,6 @@ public:
 private:
     void   ComputeWorld(Entity entity);
     void   UpdateSubtree(Entity entity);
-    World* world_ = nullptr;
+    World* _world = nullptr;
 };
 } // namespace Lgt::Systems

@@ -43,18 +43,18 @@ protected:
     /// Wraps all GPU internals (SSBO creation, upload, descriptor allocation).
     Gpu::DrawList LoadMesh(const std::filesystem::path& path);
 
-    GLFWwindow*                   window_ = nullptr;
-    std::unique_ptr<World>        world_;
-    std::unique_ptr<InputManager> input_;
-    std::unique_ptr<Timer>        timer_;
+    GLFWwindow*                   _window = nullptr;
+    std::unique_ptr<World>        _world;
+    std::unique_ptr<InputManager> _input;
+    std::unique_ptr<Timer>        _timer;
 
 private:
     void BeginUi();
     void EndUi();
     void RenderScene();
 
-    std::unique_ptr<ImGuiLayer>  imguiLayer_;
-    std::vector<Gpu::DrawList>   meshes_;
+    std::unique_ptr<ImGuiLayer>  _imguiLayer;
+    std::vector<Gpu::DrawList>   _meshes;
     bool                         uiEnabled_ = false;
 };
 

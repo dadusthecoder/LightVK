@@ -7,10 +7,10 @@ public:
     void Init(bool enableValidation, const std::vector<const char*>& validationLayers);
     void ShutDown();
 
-    VkInstance Handle() const { return instance_; }
+    VkInstance Handle() const { return _instance; }
 
 private:
-    VkInstance               instance_       = VK_NULL_HANDLE;
+    VkInstance               _instance       = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debugMessenger_ = VK_NULL_HANDLE;
     bool                     validation_     = false;
 

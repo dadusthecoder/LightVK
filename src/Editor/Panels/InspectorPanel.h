@@ -16,7 +16,7 @@ private:
     void DrawComponents(Entity entity);
     void DrawAddComponentMenu(Entity entity);
 
-    Context* context_ = nullptr;
+    Context* _context = nullptr;
 };
 
 } // namespace Lgt::Editor::Panel

@@ -8,9 +8,9 @@ public:
     void Init(VkInstance instance, GLFWwindow* window);
     void ShutDown();
 
-    VkSurfaceKHR Handle() const { return surface_; }
+    VkSurfaceKHR Handle() const { return _surface; }
 
 private:
-    VkInstance   instance_ = VK_NULL_HANDLE;
-    VkSurfaceKHR surface_  = VK_NULL_HANDLE;
+    VkInstance   _instance = VK_NULL_HANDLE;
+    VkSurfaceKHR _surface  = VK_NULL_HANDLE;
 };

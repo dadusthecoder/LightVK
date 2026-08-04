@@ -9,8 +9,8 @@ class Entity {
 public:
     Entity() = default;
     Entity(entt::entity handle, World* world)
-        : handle_(handle),
-          world_(world) {}
+        : _handle(handle),
+          _world(world) {}
 
     template <typename T, typename... Args> decltype(auto) Add(Args&&... args);
     template <typename T> decltype(auto)                   Get();
@@ -20,12 +20,12 @@ public:
 
     [[nodiscard]]
     constexpr entt::entity Handle() const noexcept {
-        return handle_;
+        return _handle;
     }
 
-    [[nodiscard]] bool IsValid() const noexcept { return handle_ != entt::null && world_ && world_->Registry().valid(handle_); }
+    [[nodiscard]] bool IsValid() const noexcept { return _handle != entt::null && _world && _world->Registry().valid(_handle); }
 
-    constexpr bool     operator==(const Entity& o) const noexcept { return handle_ == o.handle_ && world_ == o.world_; }
+    constexpr bool     operator==(const Entity& o) const noexcept { return _handle == o._handle && _world == o._world; }
     constexpr bool     operator!=(const Entity& o) const noexcept { return !(*this == o); }
     constexpr explicit operator bool() const noexcept { return IsValid(); }
 
@@ -33,44 +33,44 @@ public:
 
 private:
     inline void  Validate() const;
-    entt::entity handle_ = entt::null;
-    World*       world_  = nullptr;
+    entt::entity _handle = entt::null;
+    World*       _world  = nullptr;
 };
 
 inline void Entity::Validate() const {
-    LGT_ASSERT(handle_ != entt::null, "Null entity");
-    LGT_ASSERT(world_ != nullptr, "Null world");
-    LGT_ASSERT(world_->Registry().valid(handle_), "Destroyed entity");
+    LGT_ASSERT(_handle != entt::null, "Null entity");
+    LGT_ASSERT(_world != nullptr, "Null world");
+    LGT_ASSERT(_world->Registry().valid(_handle), "Destroyed entity");
 }
 
 template <typename T, typename... Args> inline decltype(auto) Entity::Add(Args&&... args) {
     LGT_ASSERT_STATIC(!std::is_reference_v<T>, "Component type cannot be a reference");
     if (!LIGHTVK_VERIFY(!Has<T>(), "Component already exists on this entity! Use Get()")) {}
-    return world_->Registry().emplace<T>(handle_, std::forward<Args>(args)...);
+    return _world->Registry().emplace<T>(_handle, std::forward<Args>(args)...);
 }
 
 template <typename T> inline void Entity::Remove() {
     LGT_ASSERT_STATIC(!std::is_reference_v<T>, "Component type cannot be a reference");
     if (!LIGHTVK_VERIFY(Has<T>(), "Component dose not exists on this entity! Use Add()")) {}
-    world_->Registry().remove<T>(handle_);
+    _world->Registry().remove<T>(_handle);
 }
 
 template <typename T> inline decltype(auto) Entity::Get() {
     LGT_ASSERT_STATIC(!std::is_reference_v<T>, "Component type cannot be a reference");
     if (!LIGHTVK_VERIFY(Has<T>(), "Component dose not exists on this entity! Use Add()")) {}
-    return world_->Registry().get<T>(handle_);
+    return _world->Registry().get<T>(_handle);
 }
 
 template <typename T> inline decltype(auto) Entity::Get() const {
     LGT_ASSERT_STATIC(!std::is_reference_v<T>, "Component type cannot be a reference");
     if (!LIGHTVK_VERIFY(Has<T>(), "Component dose not exists on this entity! Use Add()")) {}
-    return world_->Registry().get<T>(handle_);
+    return _world->Registry().get<T>(_handle);
 }
 
 template <typename T> inline bool Entity::Has() const {
     LGT_ASSERT_STATIC(!std::is_reference_v<T>, "Component type cannot be a reference");
     Validate();
-    return world_->Registry().all_of<T>(handle_);
+    return _world->Registry().all_of<T>(_handle);
 }
 //-------------------------------------------------------------------------------
 

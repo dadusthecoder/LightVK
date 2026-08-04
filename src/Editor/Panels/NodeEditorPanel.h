@@ -12,7 +12,7 @@ public:
     void Draw();
 
 private:
-    Context* context_ = nullptr;
+    Context* _context = nullptr;
     ax::NodeEditor::EditorContext* editorContext_ = nullptr;
 };
 

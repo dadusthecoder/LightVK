@@ -5,24 +5,24 @@
 class RuntimeApp : public Lgt::Application {
 public:
     void OnInit() override {
-        Lgt::SceneSerializer serializer(world_.get());
+        Lgt::SceneSerializer serializer(_world.get());
         if (serializer.DeserializeBinary("scene.bin")) {
             LIGHTVK_INFO("Successfully loaded scene.bin in Runtime!");
         } else {
             LIGHTVK_ERROR("Failed to load scene.bin");
         }
 
-        player_system_.Init(world_.get());
+        _player_system.Init(_world.get());
     }
 
     void OnUpdate(float dt) override {
-        player_system_.Update(dt, input_.get(), world_.get());
+        _player_system.Update(dt, _input.get(), _world.get());
     }
 
     // No OnDrawUi() override — zero ImGui overhead in Runtime
 
 private:
-    Game::PlayerSystem player_system_;
+    Game::PlayerSystem _player_system;
 };
 
 int main() {

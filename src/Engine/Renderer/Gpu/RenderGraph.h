@@ -5,6 +5,7 @@
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "Engine/Core/Logger.h"
@@ -13,7 +14,9 @@
 
 namespace Lgt::Gpu { // namespace  Lgt::Gpu
 
-using RenderGraphExecuteCallback = std::function<void(VkCommandBuffer)>;
+struct RenderGraphPass;
+
+using RenderGraphExecuteCallback = void (*)(RenderGraphPass* pass, void* userdata);
 
 enum class Access : uint8_t {
     Read,
@@ -76,24 +79,22 @@ struct RenderGraphPass {
         resources.push_back({buffer.value, ResourceKind::Buffer, Access::Write});
         return *this;
     }
+
+    RenderGraphPass& SetExecute(RenderGraphExecuteCallback callback) {
+        execute = callback;
+        return *this;
+    }
 };
 
 struct RenderGraphNode {
-    uint32_t              indegree = 0;
-    uint32_t              passID   = UINT32_MAX;
-    std::vector<uint32_t> childern;
+    uint32_t                     indegree = 0;
+    uint32_t                     passID   = UINT32_MAX;
+    std::unordered_set<uint32_t> childern;
 };
 
 struct ResourceInfo {
     uint32_t              producer = UINT32_MAX;
     std::vector<uint32_t> consumers;
-};
-
-struct RenderGraphEdge {
-    uint32_t     consumer = -1;
-    uint32_t     producer = -1;
-    ResourceKind type;
-    uint64_t     handle;
 };
 
 // later this graph may consume passes that can be executed parally , or can be recorded parraly on the cpu
@@ -103,6 +104,7 @@ class RenderGraphClass {
 public:
     void Init();
     void ShoutDown();
+
     //  for now this graph only supports one writer per resource
     //  later memory aliasing will be added to solve this problem
 
@@ -117,13 +119,13 @@ public:
 private:
     void CollectResources();
     void ResolveDependencies();
-    void Validate(); // not quite right
-    void Sort();
+    void Validate();
+    void TopologicalSort();
 
-    std::vector<RenderGraphEdge>                  edges_;
-    std::vector<RenderGraphPass>                  passes_;
-    std::vector<RenderGraphNode>                  nodes_;
-    std::vector<uint32_t>                         execution_;
-    std::unordered_map<ResourceKey, ResourceInfo> resources_;
+    std::vector<RenderGraphPass> _passes;
+    std::vector<RenderGraphNode> _nodes;
+    std::vector<uint32_t>        _execution;
+
+    std::unordered_map<ResourceKey, ResourceInfo> _resources;
 };
 } // namespace Lgt::Gpu
