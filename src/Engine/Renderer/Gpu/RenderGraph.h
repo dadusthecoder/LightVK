@@ -119,13 +119,13 @@ public:
 private:
     void CollectResources();
     void ResolveDependencies();
-    void Validate();
+    void Validate(); // not quite right
     void TopologicalSort();
 
-    std::vector<RenderGraphPass> _passes;
-    std::vector<RenderGraphNode> _nodes;
-    std::vector<uint32_t>        _execution;
+    std::vector<RenderGraphPass> passes_;
+    std::vector<RenderGraphNode> nodes_;
+    std::vector<uint32_t>        execution_;
 
-    std::unordered_map<ResourceKey, ResourceInfo> _resources;
+    std::unordered_map<ResourceKey, ResourceInfo> resources_;
 };
 } // namespace Lgt::Gpu
