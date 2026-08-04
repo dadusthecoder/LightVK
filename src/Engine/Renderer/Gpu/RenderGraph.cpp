@@ -9,32 +9,33 @@ void RenderGraphClass::ShoutDown() {
     LIGHTVK_INFO("RenderGraph Shutting Down");
 }
 
-// i used this design cuse it gives me access to the node and pass with same id in o(1) time complexcity
-// while keeping the pass and nodes decoupled
-// later i tend to update this solution
-// TODO - find a better solution
-
 void RenderGraphClass::AddPass(RenderGraphPass pass) {
     pass.passID = static_cast<uint32_t>(passes_.size());
+    LGT_ASSERT(pass.execute, "pass {} has no execution callback", pass.name);
     passes_.push_back(std::move(pass));
-    RenderGraphNode node;
-    node.passID = pass.passID;
-    nodes_.push_back(std::move(node));
 }
 
-void RenderGraphClass::Execute() {}
+void RenderGraphClass::Execute() {
+    for (auto passID : execution_) {
+        auto& pass = passes_[passID];
+        pass.execute(&pass, nullptr);
+    }
+}
 
-// the current implementions dose not supprot the multimple p[roducer ,
-// so i am just silently continuing to the last writer and usiing it as the producer
-// which results in the undefined behaviour for now .so i the engine hard asserts in the debug build
-
+// the current implementions dose not supprot the multimple producer ,
+// which results in the undefined behaviour for now .so the engine asserts in the debug build
 void RenderGraphClass::CollectResources() {
     for (auto& pass : passes_) {
+
+        RenderGraphNode node;
+        node.passID = pass.passID;
+        nodes_.push_back(std::move(node));
+
         for (auto& resource : pass.resources) {
             ResourceKey key{.type = resource.type, .handle = resource.handle};
             if (resource.access == Access::Write) {
                 LGT_ASSERT(resources_[key].producer == UINT32_MAX,
-                           "Multiple Writes to the same resource in pass {} , resource {}",
+                           "Multiple Writes to the same resource in Renderpass {} , resource {}",
                            pass.name,
                            resource.handle);
 
@@ -50,56 +51,79 @@ void RenderGraphClass::CollectResources() {
 
 void RenderGraphClass::ResolveDependencies() {
     for (auto& resource : resources_) {
-        for (auto consumer : resource.second.consumers) {
-            if (resource.second.producer != UINT32_MAX)
-                nodes_[resource.second.producer].childern.push_back(consumer);
-            nodes_[consumer].indegree++;
+        for (const auto& consumer : resource.second.consumers) {
+            if (resource.second.producer != UINT32_MAX) {
+                auto [iter, inserted] = nodes_[resource.second.producer].childern.insert(consumer);
+                // Only increment indegree if this edge didn't exist before
+                if (inserted) {
+                    nodes_[consumer].indegree++;
+                }
+            }
         }
     }
 }
 
 void RenderGraphClass::Validate() {
-    for (auto& edge : edges_) {
-
-        LIGHTVK_INFO("Rendergraph Edge : p : {} , C : {} , RT : {} , RH : {}",
-                     edge.producer,
-                     edge.consumer,
-                     (uint8_t)edge.type,
-                     edge.handle);
-
-        // LGT_ASSERT(edge.producer != UINT32_MAX, "Invalid RenderGraph");
+    for (const auto& [key, info] : resources_) {
+        if (info.producer == UINT32_MAX) {
+            LIGHTVK_WARN("Resource (type: {}, handle: {}) has no producer. Assuming external resource.", 
+                         (uint32_t)key.type, key.handle);
+        }
+        
+        if (info.consumers.empty()) {
+            if (info.producer != UINT32_MAX) {
+                LIGHTVK_WARN("Resource (type: {}, handle: {}) is produced by pass '{}' but never consumed.", 
+                             (uint32_t)key.type, key.handle, passes_[info.producer].name);
+            }
+        } else {
+            for (auto consumer : info.consumers) {
+                LIGHTVK_TRACE("RenderGraph Edge: Producer: {} -> Consumer: {} | Resource: (type: {}, handle: {})",
+                              info.producer != UINT32_MAX ? passes_[info.producer].name : "External",
+                              passes_[consumer].name,
+                              (uint32_t)key.type, key.handle);
+            }
+        }
     }
 }
 
-void RenderGraphClass::Sort() {
+void RenderGraphClass::TopologicalSort() {
 
     std::vector<uint32_t> queue;
+    size_t                head      = 0;
+    uint32_t              processed = 0;
 
     for (auto& node : nodes_) {
         if (node.indegree == 0)
             queue.push_back(node.passID);
     }
 
-    // kahn's algorithm , bfs sort
-    while (!queue.empty()) {
-        auto nodeID = queue.back();
+    // kahn's algorithm , bfs
+    while (head < queue.size()) {
+        auto nodeID = queue[head++];
         execution_.push_back(nodeID);
-        queue.pop_back();
+        processed++;
         for (auto& childID : nodes_[nodeID].childern) {
             // this statements directly mutates the graph
-            if (nodes_[childID].indegree == 0 || --nodes_[childID].indegree == 0)
+            if (--nodes_[childID].indegree == 0)
                 queue.push_back(childID);
         }
+    }
+
+    if (execution_.size() != passes_.size()) {
+        LIGHTVK_ERROR("RenderGraph Cycle Detected! Execution pipeline aborted.");
+        execution_.clear();
     }
 }
 
 void RenderGraphClass::Compile() {
     resources_.clear();
+    execution_.clear();
+    nodes_.clear();
 
     CollectResources();
     ResolveDependencies();
     Validate();
-    Sort();
+    TopologicalSort();
 }
 
 } // namespace Lgt::Gpu

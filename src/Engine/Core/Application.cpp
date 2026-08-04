@@ -17,6 +17,9 @@
 
 namespace Lgt {
 
+void OnPassExecute(Gpu::RenderGraphPass* pass, void* userdata) {
+    LIGHTVK_INFO("Executing Pass {}", pass->name);
+}
 void Application::Init() {
 
     LOG_INIT();
@@ -48,18 +51,21 @@ void Application::Init() {
     Gpu::RenderGraphPass shadowPass;
     shadowPass.name = "Shadow";
     shadowPass.Writes(Gpu::TextureHandle(0)); // ShadowMap
+    shadowPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass gbufferPass;
     gbufferPass.name = "GBuffer";
     gbufferPass.Writes(Gpu::TextureHandle(1)); // Albedo
     gbufferPass.Writes(Gpu::TextureHandle(2)); // Normal
     gbufferPass.Writes(Gpu::TextureHandle(3)); // Depth
+    gbufferPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass ssaoPass;
     ssaoPass.name = "SSAO";
     ssaoPass.Reads(Gpu::TextureHandle(2));  // Normal
     ssaoPass.Reads(Gpu::TextureHandle(3));  // Depth
     ssaoPass.Writes(Gpu::TextureHandle(4)); // SSAO
+    ssaoPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass lightingPass;
     lightingPass.name = "Lighting";
@@ -69,17 +75,20 @@ void Application::Init() {
     lightingPass.Reads(Gpu::TextureHandle(3));  // Depth
     lightingPass.Reads(Gpu::TextureHandle(4));  // SSAO
     lightingPass.Writes(Gpu::TextureHandle(5)); // HDR
+    lightingPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass bloomPass;
     bloomPass.name = "Bloom";
     bloomPass.Reads(Gpu::TextureHandle(5));  // HDR
     bloomPass.Writes(Gpu::TextureHandle(6)); // Bloom
+    bloomPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraphPass tonemapPass;
     tonemapPass.name = "Tonemap";
     tonemapPass.Reads(Gpu::TextureHandle(5));  // HDR
     tonemapPass.Reads(Gpu::TextureHandle(6));  // Bloom
     tonemapPass.Writes(Gpu::TextureHandle(7)); // Final Image
+    tonemapPass.SetExecute(OnPassExecute);
 
     Gpu::RenderGraph->AddPass(ssaoPass);
     Gpu::RenderGraph->AddPass(tonemapPass);
@@ -89,8 +98,7 @@ void Application::Init() {
     Gpu::RenderGraph->AddPass(bloomPass);
 
     Gpu::RenderGraph->Compile();
-
-    // Gpu::RenderGraph->AddPass();
+    Gpu::RenderGraph->Execute();
 }
 
 void Application::Run() {

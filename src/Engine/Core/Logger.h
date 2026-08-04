@@ -130,8 +130,10 @@ inline const char* VkResultToString(int64_t result) {
 #define LOG_INIT()     Logger::Init()
 #define LOG_SHUTDOWN() Logger::Shutdown();
 
-#define LIGHTVK_TRACE(msg, ...)    Logger::Core()->trace("[{}]: " msg, __func__, ##__VA_ARGS__)
-#define LIGHTVK_INFO(msg, ...)     Logger::Core()->info("[{}]: " msg, __func__, ##__VA_ARGS__)
-#define LIGHTVK_WARN(msg, ...)     Logger::Core()->warn("[{}]: " msg, __func__, ##__VA_ARGS__)
+#define LIGHTVK_TRACE(msg, ...) Logger::Core()->trace("[{}]: " msg, __func__, ##__VA_ARGS__)
+#define LIGHTVK_INFO(msg, ...)  Logger::Core()->info("[{}]: " msg, __func__, ##__VA_ARGS__)
+#define LIGHTVK_WARN(msg, ...)  Logger::Core()->warn("[{}]: " msg, __func__, ##__VA_ARGS__)
+#define LIGHTVK_TODO(msg, ...)  Logger::Core()->warn("[{}/TODO]:" msg, __func__, ##__VA_ARGS__)
+
 #define LIGHTVK_ERROR(msg, ...)    Logger::Core()->error("[{}]: " msg, __func__, ##__VA_ARGS__)
 #define LIGHTVK_CRITICAL(msg, ...) Logger::Core()->critical("[{}]: " msg, __func__, ##__VA_ARGS__)
