@@ -56,6 +56,17 @@ bool VulkanAllocator::createBuffer(const VkBufferCreateInfo&      bufferInfo,
     return res == VK_SUCCESS;
 }
 
+bool VulkanAllocator::createBufferWithAlignment(const VkBufferCreateInfo&      bufferInfo,
+                                                const VmaAllocationCreateInfo& allocInfo,
+                                                VkDeviceSize                   minAlignment,
+                                                VkBuffer&                      outBuffer,
+                                                VmaAllocation&                 outAllocation,
+                                                VmaAllocationInfo*             outInfo) {
+    VkResult res = vmaCreateBufferWithAlignment(m_Allocator, &bufferInfo, &allocInfo, minAlignment, &outBuffer, &outAllocation, outInfo);
+    VK_CHECK(res);
+    return res == VK_SUCCESS;
+}
+
 void VulkanAllocator::destroyBuffer(VkBuffer buffer, VmaAllocation allocation) {
     vmaDestroyBuffer(m_Allocator, buffer, allocation);
 }

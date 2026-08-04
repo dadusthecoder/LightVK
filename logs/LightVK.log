@@ -1,2 +1,129 @@
-[2026-07-15 00:32:46.483] [C] [thread 22296] [LIGHTVK] [:] [] [Init]: Testing Critical
-[2026-07-15 00:32:46.483] [E] [thread 22296] [LIGHTVK] [:] [] [Init]: Testing Error
+[2026-08-03 21:08:56.662] [C] [thread 30248] [LIGHTVK] [:] [] [Init]: Testing Critical
+[2026-08-03 21:08:56.662] [E] [thread 30248] [LIGHTVK] [:] [] [Init]: Testing Error
+[2026-08-03 21:08:56.662] [T] [thread 30248] [LIGHTVK] [Init]: Testing Trace
+[2026-08-03 21:08:56.662] [W] [thread 30248] [LIGHTVK] [:] [Init]: Testing Warn
+[2026-08-03 21:08:56.662] [I] [thread 30248] [LIGHTVK] [Init]: Testing Info
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Configurations count = 20
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [0] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_EOS_Overlay
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files (x86)\Epic Games\Epic Online Services\managedArtifacts\98bc04bc842e4906993fd6d6644ffb8d\EOSOverlayVkLayer-Win64.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [1] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_NV_GPU_Trace_release_public_2026_2_0
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files\NVIDIA Corporation\Nsight Graphics 2026.2.0\target\windows-desktop-nomad-x64\VK_LAYER_NV_GPU_Trace_release_public_2026_2_0.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [2] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_NV_ngfx_capture_release_public_2026_2_0
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files\NVIDIA Corporation\Nsight Graphics 2026.2.0\target\windows-desktop-nomad-x64\VK_LAYER_NV_ngfx_capture_release_public_2026_2_0.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [3] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_NV_nomad_release_public_2026_2_0
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files\NVIDIA Corporation\Nsight Graphics 2026.2.0\target\windows-desktop-nomad-x64\VK_LAYER_NV_nomad_release_public_2026_2_0.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [4] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_NV_optimus
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\WINDOWS\System32\DriverStore\FileRepository\nvlti.inf_amd64_af02d12a5c2283af\nv-vk64.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [5] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_NV_present
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\WINDOWS\System32\DriverStore\FileRepository\nvlti.inf_amd64_af02d12a5c2283af\nv-vk64.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [6] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_NV_shader_debugger_release_public_2026_2_0
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files\NVIDIA Corporation\Nsight Graphics 2026.2.0\target\windows-desktop-nomad-x64\VK_LAYER_NV_shader_debugger_release_public_2026_2_0.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [7] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_RENDERDOC_Capture
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files\RenderDoc\renderdoc.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [8] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_VALVE_steam_fossilize
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files (x86)\Steam\SteamFossilizeVulkanLayer64.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [9] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_VALVE_steam_overlay
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: C:\Program Files (x86)\Steam\SteamOverlayVulkanLayer64.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Implicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [10] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: unordered_layer_location
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [11] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_KHRONOS_validation
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_khronos_validation.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: on
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [12] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_KHRONOS_profiles
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_khronos_profiles.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: on
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [13] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_LUNARG_api_dump
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_api_dump.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [14] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_LUNARG_crash_diagnostic
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_crash_diagnostic.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [15] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_LUNARG_gfxreconstruct
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_gfxreconstruct.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [16] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_LUNARG_monitor
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_monitor.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [17] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_LUNARG_screenshot
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_screenshot.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [18] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_KHRONOS_shader_object
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_khronos_shader_object.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Layer Configuration [19] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Name: VK_LAYER_KHRONOS_synchronization2
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Path: D:\Vulkan\Bin\VkLayer_khronos_synchronization2.json
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Layer Type: Explicit
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Control: auto
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Device Configurations count = 1
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---- Device Configuration [0] ----
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] deviceUUID: 89022484-d914-d26e-6fa8-529976d6a0d2
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] driverUUID: 9c4136a7-0626-5b65-9812-d559ff142597
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] driverVersion: -1794359296
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] deviceName: NVIDIA GeForce RTX 3050 6GB Laptop GPU
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] driverName: NVIDIA
+[2026-08-03 21:08:59.410] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] ---------------------------------
+[2026-08-03 21:08:59.737] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] windows_get_device_registry_files: GUID for 2 is not SoftwareComponent skipping
+[2026-08-03 21:08:59.801] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Searching for ICD drivers named .\nvoglv64.dll
+[2026-08-03 21:08:59.882] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Loading layer library D:\Vulkan\Bin\.\VkLayer_khronos_profiles.dll
+[2026-08-03 21:08:59.906] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Loading layer library D:\Vulkan\Bin\.\VkLayer_khronos_validation.dll
+[2026-08-03 21:08:59.906] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Loading layer library C:\WINDOWS\System32\DriverStore\FileRepository\nvlti.inf_amd64_af02d12a5c2283af\.\nvoglv64.dll
+[2026-08-03 21:08:59.906] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] Loading layer library C:\WINDOWS\System32\DriverStore\FileRepository\nvlti.inf_amd64_af02d12a5c2283af\.\nvoglv64.dll
+[2026-08-03 21:09:02.933] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:02.937] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.026] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.029] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.038] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.042] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.046] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.050] [T] [thread 30248] [LIGHTVK] [debugCallback]: [Validation] pPhysicalDevices array index 0 is set to "NVIDIA GeForce RTX 3050 6GB Laptop GPU" (NVIDIA, version -1794359296) 
+[2026-08-03 21:09:04.051] [I] [thread 30248] [LIGHTVK] [SelectDevice]: Auto-selecting device [0]: NVIDIA GeForce RTX 3050 6GB Laptop GPU (highest score: 33435)
+[2026-08-03 21:09:04.051] [I] [thread 30248] [LIGHTVK] [CreateLogicalDevice]: Queue Families:
+[2026-08-03 21:09:04.051] [I] [thread 30248] [LIGHTVK] [CreateLogicalDevice]:   Graphics

@@ -130,7 +130,14 @@ BufferHandle ResourceManager::CreateBuffer(const BufferDesc& desc) {
         allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     }
 
-    if (Vulkan::g_Allocator->createBuffer(bufferci, allocInfo, buffer.buffer, buffer.allocation)) {
+    VkDeviceSize alignment = 1;
+    if (desc.usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) {
+        alignment = Vulkan::g_Device->Limits().minUniformBufferOffsetAlignment;
+    } else if (desc.usage & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) {
+        alignment = Vulkan::g_Device->Limits().minStorageBufferOffsetAlignment;
+    }
+
+    if (Vulkan::g_Allocator->createBufferWithAlignment(bufferci, allocInfo, alignment, buffer.buffer, buffer.allocation)) {
         buffer.deviceAddress = getBufferDeviceAddress(buffer.buffer);
         if (desc.dynamic) {
             buffer.mapped = Vulkan::g_Allocator->map(buffer.allocation);

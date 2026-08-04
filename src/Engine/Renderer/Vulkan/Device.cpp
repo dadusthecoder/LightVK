@@ -307,6 +307,8 @@ void VulkanDevice::RequestFeatures(DeviceFeatureChain& chain) const {
     // Query device support first so we only enable what exists.
     vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &chain.core);
 
+    chain.core.features.robustBufferAccess = VK_FALSE;
+
     // Core 1.0
     chain.core.features.samplerAnisotropy = VK_TRUE;
 
@@ -439,7 +441,15 @@ void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& requiredE
     std::vector<VkExtensionProperties> availableExtensions(availableCount);
     vkEnumerateDeviceExtensionProperties(m_PhysicalDevice, nullptr, &availableCount, availableExtensions.data());
 
-    if (!ValidateExtensions(requiredExtensions, availableExtensions))
+    std::vector<const char*> actualExtensions = requiredExtensions;
+    for (const auto& avail : availableExtensions) {
+        if (strcmp("VK_KHR_portability_subset", avail.extensionName) == 0) {
+            actualExtensions.push_back("VK_KHR_portability_subset");
+            break;
+        }
+    }
+
+    if (!ValidateExtensions(actualExtensions, availableExtensions))
         throw std::runtime_error("One or more required Vulkan device extensions are not supported.");
 
     // ── Build queue create infos ──────────────────────────────────────────────
@@ -460,17 +470,17 @@ void VulkanDevice::CreateLogicalDevice(const std::vector<const char*>& requiredE
     RequestFeatures(chain);
 
     // ── Create logical device ─────────────────────────────────────────────────
-    VkDeviceCreateInfo info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-    info.queueCreateInfoCount    = static_cast<uint32_t>(queues.size());
-    info.pQueueCreateInfos       = queues.data();
-    info.pEnabledFeatures        = nullptr; // using pNext chain
-    info.pNext                   = &chain.core;
-    info.enabledExtensionCount   = static_cast<uint32_t>(requiredExtensions.size());
-    info.ppEnabledExtensionNames = requiredExtensions.data();
-    info.enabledLayerCount       = 0;
-    info.ppEnabledLayerNames     = nullptr;
+    VkDeviceCreateInfo createInfo{};
+    createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    createInfo.pNext                   = &chain.core;
+    createInfo.queueCreateInfoCount    = static_cast<uint32_t>(queues.size());
+    createInfo.pQueueCreateInfos       = queues.data();
+    createInfo.enabledExtensionCount   = static_cast<uint32_t>(actualExtensions.size());
+    createInfo.ppEnabledExtensionNames = actualExtensions.data();
+    createInfo.enabledLayerCount       = 0;
+    createInfo.ppEnabledLayerNames     = nullptr;
 
-    VK_CHECK(vkCreateDevice(m_PhysicalDevice, &info, nullptr, &m_Device));
+    VK_CHECK(vkCreateDevice(m_PhysicalDevice, &createInfo, nullptr, &m_Device));
 
     vkGetDeviceQueue(m_Device, m_GraphicsFamily, 0, &m_GraphicsQueue);
     vkGetDeviceQueue(m_Device, m_ComputeFamily, 0, &m_ComputeQueue);

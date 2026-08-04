@@ -20,6 +20,13 @@ public:
                       VmaAllocation&                 outAllocation,
                       VmaAllocationInfo*             outInfo = nullptr);
 
+    bool createBufferWithAlignment(const VkBufferCreateInfo&      bufferInfo,
+                                   const VmaAllocationCreateInfo& allocInfo,
+                                   VkDeviceSize                   minAlignment,
+                                   VkBuffer&                      outBuffer,
+                                   VmaAllocation&                 outAllocation,
+                                   VmaAllocationInfo*             outInfo = nullptr);
+
     void destroyBuffer(VkBuffer buffer, VmaAllocation allocation);
 
     bool createImage(const VkImageCreateInfo& imageInfo,

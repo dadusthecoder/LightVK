@@ -33,7 +33,7 @@ static const std::vector<const char*> DEVICE_EXTENSIONS = {VK_KHR_SWAPCHAIN_EXTE
 #ifdef NDEBUG
 static constexpr bool ENABLE_VALIDATION = false;
 #else
-static constexpr bool ENABLE_VALIDATION = false;
+static constexpr bool ENABLE_VALIDATION = true;
 #endif
 
 // forward decals

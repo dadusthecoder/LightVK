@@ -552,11 +552,11 @@ void RendererClass::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
 
     renderingInfo.pColorAttachments = &colorAttachment;
 
-    vkCmdBeginRendering(cmd, &renderingInfo);
+    vkCmdBeginRenderingKHR(cmd, &renderingInfo);
 }
 
 void RendererClass::EndRendering(VkCommandBuffer cmd) {
-    vkCmdEndRendering(cmd);
+    vkCmdEndRenderingKHR(cmd);
 
     bool isUiPass       = (cmd == uiCommandBuffers_[currentFrame_]);
     bool useSceneTarget = !isUiPass && (sceneTarget_.colorImage != VK_NULL_HANDLE);

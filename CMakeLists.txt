@@ -18,14 +18,14 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/Bin")
 
 # 2. Pure vcpkg Dependency Discovery
 find_package(Vulkan REQUIRED)
-find_package(volk CONFIG REQUIRED) # <-- Added: Tell vcpkg to find Volk configuration maps
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 
-find_program(GLSLC glslc REQUIRED)
+find_program(GLSLC glslc PATHS D:/Vulkan/Bin REQUIRED)
 
 # 3. Shader Compilation Logic
 set(SHADER_SOURCE_DIR "${CMAKE_SOURCE_DIR}/shaders")

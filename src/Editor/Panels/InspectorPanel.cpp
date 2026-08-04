@@ -50,7 +50,7 @@ void InspectorPanel::DrawEntityHeader(Entity entity) {
         auto& tag = entity.Get<Component::Tag>();
         char buffer[256];
         memset(buffer, 0, sizeof(buffer));
-        strncpy(buffer, tag.name.c_str(), sizeof(buffer) - 1);
+        snprintf(buffer, sizeof(buffer), "%s", tag.name.c_str());
         
         ImGui::SetNextItemWidth(-1);
         if (ImGui::InputText("##Name", buffer, sizeof(buffer))) {

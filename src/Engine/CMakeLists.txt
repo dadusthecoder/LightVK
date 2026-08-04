@@ -28,22 +28,21 @@ set(IMGUI_SOURCES
 
 target_sources(LightVKEngine PRIVATE ${IMGUI_SOURCES})
 
-get_target_property(VOLK_INCLUDE_DIR volk::volk INTERFACE_INCLUDE_DIRECTORIES)
-
 target_include_directories(LightVKEngine
     PUBLIC
     "${CMAKE_SOURCE_DIR}/src"
-    "${VOLK_INCLUDE_DIR}" 
-    "${VOLK_INCLUDE_DIR}/.." 
+    "D:/Vulkan/Include/Volk"
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${IMGUI_NODE_EDITOR_DIR}
 )
 
+find_library(VOLK_LIB NAMES volk PATHS D:/Vulkan/Lib REQUIRED)
+
 target_link_libraries(LightVKEngine
     PUBLIC
     Vulkan::Headers 
-    volk::volk 
+    ${VOLK_LIB}
     glfw
     glm::glm
     spdlog::spdlog
@@ -63,4 +62,8 @@ target_compile_definitions(LightVKEngine
     GLM_FORCE_PURE
 )
 
-target_compile_options(LightVKEngine PRIVATE -Wno-nullability-completeness)
+target_compile_options(LightVKEngine PRIVATE "-Wno-nullability-completeness")
+target_link_options(LightVKEngine PRIVATE "-Xlinker" "/ignore:4099")
+
+
+

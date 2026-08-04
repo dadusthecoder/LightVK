@@ -12,7 +12,7 @@ void VulkanInstance::Init(bool enableValidation, const std::vector<const char*>&
         LIGHTVK_ERROR("Validation layers requested but not available");
 
     createInstance(validationLayers);
-    //setupDebugMessenger();
+    setupDebugMessenger();
 }
 
 void VulkanInstance::ShutDown() {
@@ -102,10 +102,16 @@ VkDebugUtilsMessengerCreateInfoEXT VulkanInstance::makeDebugCI() {
     return ci;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanInstance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT,
-                                                             VkDebugUtilsMessageTypeFlagsEXT,
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanInstance::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+                                                             VkDebugUtilsMessageTypeFlagsEXT type,
                                                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                              void*) {
-    // Forward to your logging system here
+    if (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        LIGHTVK_ERROR("[Validation] {}", pCallbackData->pMessage);
+    } else if (severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        LIGHTVK_WARN("[Validation] {}", pCallbackData->pMessage);
+    } else {
+        LIGHTVK_TRACE("[Validation] {}", pCallbackData->pMessage);
+    }
     return VK_FALSE;
 }

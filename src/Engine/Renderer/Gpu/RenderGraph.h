@@ -50,37 +50,43 @@ template <> struct hash<Lgt::Gpu::ResourceKey> {
 
 namespace Lgt::Gpu {
 
-struct ResourceInfo {
-    uint32_t              producer = -1;
-    std::vector<uint32_t> consumers;
-};
-
-struct RenderGraphNode {
+struct RenderGraphPass {
     uint32_t                   passID  = UINT32_MAX;
     std::string                name    = "pass";
     RenderGraphExecuteCallback execute = nullptr;
 
     std::vector<ResourceRef> resources;
 
-    RenderGraphNode& Reads(TextureHandle texture) {
+    RenderGraphPass& Reads(TextureHandle texture) {
         resources.push_back({texture.value, ResourceKind::Texture, Access::Read});
         return *this;
     }
 
-    RenderGraphNode& Reads(BufferHandle buffer) {
+    RenderGraphPass& Reads(BufferHandle buffer) {
         resources.push_back({buffer.value, ResourceKind::Buffer, Access::Read});
         return *this;
     }
 
-    RenderGraphNode& Writes(TextureHandle texture) {
+    RenderGraphPass& Writes(TextureHandle texture) {
         resources.push_back({texture.value, ResourceKind::Texture, Access::Write});
         return *this;
     }
 
-    RenderGraphNode& Writes(BufferHandle buffer) {
+    RenderGraphPass& Writes(BufferHandle buffer) {
         resources.push_back({buffer.value, ResourceKind::Buffer, Access::Write});
         return *this;
     }
+};
+
+struct RenderGraphNode {
+    uint32_t              indegree = 0;
+    uint32_t              passID   = UINT32_MAX;
+    std::vector<uint32_t> childern;
+};
+
+struct ResourceInfo {
+    uint32_t              producer = UINT32_MAX;
+    std::vector<uint32_t> consumers;
 };
 
 struct RenderGraphEdge {
@@ -97,17 +103,27 @@ class RenderGraphClass {
 public:
     void Init();
     void ShoutDown();
-    void AddPass(RenderGraphNode);
+    //  for now this graph only supports one writer per resource
+    //  later memory aliasing will be added to solve this problem
+
+    // TODO - Memory aliasing
+    // Graph Validation
+    //
+
+    void AddPass(RenderGraphPass);
     void Compile();
     void Execute();
 
 private:
-    void                                          CollectResources();
-    void                                          ResolveDependencies();
-    void                                          Validate();
-    
+    void CollectResources();
+    void ResolveDependencies();
+    void Validate(); // not quite right
+    void Sort();
+
     std::vector<RenderGraphEdge>                  edges_;
+    std::vector<RenderGraphPass>                  passes_;
     std::vector<RenderGraphNode>                  nodes_;
+    std::vector<uint32_t>                         execution_;
     std::unordered_map<ResourceKey, ResourceInfo> resources_;
 };
 } // namespace Lgt::Gpu
