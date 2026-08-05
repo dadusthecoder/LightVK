@@ -11,6 +11,7 @@
 #include "Engine/Renderer/Gpu/Resource.h"
 #include "Engine/UI/ImGuiLayer.h"
 #include "Engine/Core/Math.h"
+#include "Engine/Renderer/Gpu/Passes/Gbuffer.h"
 
 // Asset loading (will be moved to Engine later)
 #include "Engine/Assets/Assets.h"
@@ -47,56 +48,7 @@ void Application::Init() {
     _imguiLayer = std::make_unique<ImGuiLayer>();
     _imguiLayer->Init(_window, Gpu::Renderer->SwapchainFormat());
 
-    OnInit();
-    Gpu::RenderGraphPass shadowPass;
-    shadowPass.name = "Shadow";
-    shadowPass.Writes(Gpu::TextureHandle(0)); // ShadowMap
-    shadowPass.SetExecute(OnPassExecute);
-
-    Gpu::RenderGraphPass gbufferPass;
-    gbufferPass.name = "GBuffer";
-    gbufferPass.Writes(Gpu::TextureHandle(1)); // Albedo
-    gbufferPass.Writes(Gpu::TextureHandle(2)); // Normal
-    gbufferPass.Writes(Gpu::TextureHandle(3)); // Depth
-    gbufferPass.SetExecute(OnPassExecute);
-
-    Gpu::RenderGraphPass ssaoPass;
-    ssaoPass.name = "SSAO";
-    ssaoPass.Reads(Gpu::TextureHandle(2));  // Normal
-    ssaoPass.Reads(Gpu::TextureHandle(3));  // Depth
-    ssaoPass.Writes(Gpu::TextureHandle(4)); // SSAO
-    ssaoPass.SetExecute(OnPassExecute);
-
-    Gpu::RenderGraphPass lightingPass;
-    lightingPass.name = "Lighting";
-    lightingPass.Reads(Gpu::TextureHandle(0));  // ShadowMap
-    lightingPass.Reads(Gpu::TextureHandle(1));  // Albedo
-    lightingPass.Reads(Gpu::TextureHandle(2));  // Normal
-    lightingPass.Reads(Gpu::TextureHandle(3));  // Depth
-    lightingPass.Reads(Gpu::TextureHandle(4));  // SSAO
-    lightingPass.Writes(Gpu::TextureHandle(5)); // HDR
-    lightingPass.SetExecute(OnPassExecute);
-
-    Gpu::RenderGraphPass bloomPass;
-    bloomPass.name = "Bloom";
-    bloomPass.Reads(Gpu::TextureHandle(5));  // HDR
-    bloomPass.Writes(Gpu::TextureHandle(6)); // Bloom
-    bloomPass.SetExecute(OnPassExecute);
-
-    Gpu::RenderGraphPass tonemapPass;
-    tonemapPass.name = "Tonemap";
-    tonemapPass.Reads(Gpu::TextureHandle(5));  // HDR
-    tonemapPass.Reads(Gpu::TextureHandle(6));  // Bloom
-    tonemapPass.Writes(Gpu::TextureHandle(7)); // Final Image
-    tonemapPass.SetExecute(OnPassExecute);
-
-    Gpu::RenderGraph->AddPass(ssaoPass);
-    Gpu::RenderGraph->AddPass(tonemapPass);
-    Gpu::RenderGraph->AddPass(shadowPass);
-    Gpu::RenderGraph->AddPass(lightingPass);
-    Gpu::RenderGraph->AddPass(gbufferPass);
-    Gpu::RenderGraph->AddPass(bloomPass);
-
+    Gpu::RenderGraph->AddPass<Gpu::Pass::Gbuffer>();
     Gpu::RenderGraph->Compile();
     Gpu::RenderGraph->Execute();
 }

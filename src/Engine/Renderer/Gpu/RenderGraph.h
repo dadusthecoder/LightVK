@@ -14,10 +14,6 @@
 
 namespace Lgt::Gpu { // namespace  Lgt::Gpu
 
-struct RenderGraphPass;
-
-using RenderGraphExecuteCallback = void (*)(RenderGraphPass* pass, void* userdata);
-
 enum class Access : uint8_t {
     Read,
     Write
@@ -53,10 +49,27 @@ template <> struct hash<Lgt::Gpu::ResourceKey> {
 
 namespace Lgt::Gpu {
 
+class RenderGraphBuilder;
+struct RenderGraphPass;
+
+using RenderGraphSetupCallback   = void (*)(const RenderGraphBuilder& builder, RenderGraphPass* pass);
+using RenderGraphExecuteCallback = void (*)(RenderGraphPass* pass, void* userdata);
+
+class RenderGraphBuilder {
+public:
+    TextureHandle CreateTexture(...);
+    BufferHandle  CreateBuffer(...);
+    void          Read(TextureHandle);
+    void          Write(TextureHandle);
+    void          Import(TextureHandle);
+    void          Export(TextureHandle);
+};
+
 struct RenderGraphPass {
     uint32_t                   passID  = UINT32_MAX;
     std::string                name    = "pass";
     RenderGraphExecuteCallback execute = nullptr;
+    RenderGraphSetupCallback   setup   = nullptr;
 
     std::vector<ResourceRef> resources;
 
@@ -77,11 +90,6 @@ struct RenderGraphPass {
 
     RenderGraphPass& Writes(BufferHandle buffer) {
         resources.push_back({buffer.value, ResourceKind::Buffer, Access::Write});
-        return *this;
-    }
-
-    RenderGraphPass& SetExecute(RenderGraphExecuteCallback callback) {
-        execute = callback;
         return *this;
     }
 };
@@ -109,10 +117,16 @@ public:
     //  later memory aliasing will be added to solve this problem
 
     // TODO - Memory aliasing
-    // Graph Validation
     //
 
-    void AddPass(RenderGraphPass);
+    template <typename T> void AddPass() {
+        RenderGraphPass pass;
+        pass.passID  = static_cast<uint32_t>(passes_.size());
+        pass.execute = &T::Execute;
+        pass.setup   = &T::Setup;
+        passes_.push_back(std::move(pass));
+    };
+
     void Compile();
     void Execute();
 

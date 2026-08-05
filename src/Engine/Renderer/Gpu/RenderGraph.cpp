@@ -9,12 +9,6 @@ void RenderGraphClass::ShoutDown() {
     LIGHTVK_INFO("RenderGraph Shutting Down");
 }
 
-void RenderGraphClass::AddPass(RenderGraphPass pass) {
-    pass.passID = static_cast<uint32_t>(passes_.size());
-    LGT_ASSERT(pass.execute, "pass {} has no execution callback", pass.name);
-    passes_.push_back(std::move(pass));
-}
-
 void RenderGraphClass::Execute() {
     for (auto passID : execution_) {
         auto& pass = passes_[passID];
@@ -22,11 +16,11 @@ void RenderGraphClass::Execute() {
     }
 }
 
-// the current implementions dose not supprot the multimple producer ,
-// which results in the undefined behaviour for now .so the engine asserts in the debug build
+
 void RenderGraphClass::CollectResources() {
     for (auto& pass : passes_) {
-
+        RenderGraphBuilder builder;
+        pass.setup(builder, &pass);
         RenderGraphNode node;
         node.passID = pass.passID;
         nodes_.push_back(std::move(node));

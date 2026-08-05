@@ -20,21 +20,6 @@ public:
         cam.Add<Lgt::Component::Camera>();
         cam.Get<Lgt::Component::LocalTransform>().position = {0.f, 0.f, 5.f};
 
-        // Test scene setup
-        auto e  = _world->CreateEntity("TestSphere");
-        auto e1 = _world->CreateEntity("TestChild1");
-        auto e2 = _world->CreateEntity("TestChild2");
-        auto e3 = _world->CreateEntity("TestChild3");
-        auto e4 = _world->CreateEntity("TestChild4");
-
-        _world->Graph().SetParent(e, e4);
-        _world->Graph().SetParent(e, e1);
-        _world->Graph().SetParent(e1, e2);
-        _world->Graph().SetParent(e2, e3);
-
-        // Save scene
-        Lgt::SceneSerializer serializer(_world.get());
-        serializer.SerializeBinary("scene.bin");
     }
 
     float yaw   = -90.0f;

@@ -52,7 +52,7 @@ private:
     void BeginUi();
     void EndUi();
     void RenderScene();
-
+    
     std::unique_ptr<ImGuiLayer>  _imguiLayer;
     std::vector<Gpu::DrawList>   _meshes;
     bool                         uiEnabled_ = false;
