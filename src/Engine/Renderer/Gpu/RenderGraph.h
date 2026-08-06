@@ -105,19 +105,23 @@ struct ResourceInfo {
     std::vector<uint32_t> consumers;
 };
 
-// later this graph may consume passes that can be executed parally , or can be recorded parraly on the cpu
-// this is just a barebone implemention of what i am trying to build;
-
 class RenderGraphClass {
 public:
     void Init();
     void ShoutDown();
 
-    //  for now this graph only supports one writer per resource
-    //  later memory aliasing will be added to solve this problem
+    // TODO
+    // 2) Barrier Generation
 
-    // TODO - Memory aliasing
-    //
+    // 1) Memory aliasing
+
+    // 2) support multiple writers to the same resource
+    /*
+      for eg. shadow bloom reads HDR and then Writes HDR which is perfectly valid but the current implemention assert on
+      such case .
+    */
+
+    // 3) imported resources
 
     template <typename T> void AddPass() {
         RenderGraphPass pass;
@@ -133,7 +137,7 @@ public:
 private:
     void CollectResources();
     void ResolveDependencies();
-    void Validate(); // not quite right
+    void Validate();
     void TopologicalSort();
 
     std::vector<RenderGraphPass> passes_;

@@ -3,6 +3,7 @@
 #include "Core.h"
 #include "Engine/Core/GlmConfig.h"
 #include <array>
+#include <cmath>
 
 struct GLFWwindow;
 
@@ -34,6 +35,34 @@ static constexpr int Right  = 1;
 static constexpr int Middle = 2;
 } // namespace Mouse
 
+// Named input actions for game-agnostic binding
+enum class InputAction : uint32_t {
+    MoveForward = 0,
+    MoveBackward,
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
+    Jump,
+    Sprint,
+    Crouch,
+    Fire,
+    AltFire,
+    Interact,
+    ToggleUI,
+    CameraLook,  // axis action
+    COUNT
+};
+
+struct ActionBinding {
+    int key           = -1;   // GLFW key code, -1 = unbound
+    int mouseButton   = -1;   // GLFW mouse button, -1 = unbound
+    int gamepadButton = -1;   // GLFW gamepad button, -1 = unbound
+    int gamepadAxis   = -1;   // GLFW gamepad axis, -1 = unbound
+    float axisDeadzone = 0.15f;
+    bool  axisInvert   = false;
+};
+
 class InputManager {
 public:
     explicit InputManager(GLFWwindow* window);
@@ -52,33 +81,61 @@ public:
     [[nodiscard]] bool WasMousePressed(int button) const;
 
     // Mouse position in window pixels
-    [[nodiscard]] glm::vec2 GetMousePos() const { return m_MousePos; }
+    [[nodiscard]] glm::vec2 GetMousePos() const { return _mousePos; }
     // Delta since last frame (only non-zero when cursor is captured)
-    [[nodiscard]] glm::vec2 GetMouseDelta() const { return m_MouseDelta; }
-    [[nodiscard]] f32       GetScrollDelta() const { return m_ScrollDelta; }
+    [[nodiscard]] glm::vec2 GetMouseDelta() const { return _mouseDelta; }
+    [[nodiscard]] f32       GetScrollDelta() const { return _scrollDelta; }
 
     // Lock/unlock cursor (for FPS-style look)
     void               SetCursorCaptured(bool captured);
-    [[nodiscard]] bool IsCursorCaptured() const { return m_CursorCaptured; }
+    [[nodiscard]] bool IsCursorCaptured() const { return _cursorCaptured; }
+
+    // Action mapping
+    void BindKey(InputAction action, int key);
+    void BindMouseButton(InputAction action, int button);
+    void BindGamepadButton(InputAction action, int button);
+    void BindGamepadAxis(InputAction action, int axis, float deadzone = 0.15f, bool invert = false);
+
+    [[nodiscard]] bool  IsActionDown(InputAction action) const;
+    [[nodiscard]] bool  WasActionPressed(InputAction action) const;
+    [[nodiscard]] bool  WasActionReleased(InputAction action) const;
+    [[nodiscard]] float GetActionAxis(InputAction action) const;
+
+    // Gamepad
+    [[nodiscard]] bool IsGamepadConnected() const { return _gamepadConnected; }
+
+    // Set up default bindings
+    void SetDefaultBindings();
 
 private:
     static void ScrollCallback(GLFWwindow*, double, double yOffset);
 
-    GLFWwindow* m_Window;
+    GLFWwindow* _window;
 
     static constexpr int kMaxKeys    = 512;
     static constexpr int kMaxButtons = 8;
 
-    std::array<bool, kMaxKeys>    m_KeyCurr{};
-    std::array<bool, kMaxKeys>    m_KeyPrev{};
-    std::array<bool, kMaxButtons> m_BtnCurr{};
-    std::array<bool, kMaxButtons> m_BtnPrev{};
+    std::array<bool, kMaxKeys>    _keyCurr{};
+    std::array<bool, kMaxKeys>    _keyPrev{};
+    std::array<bool, kMaxButtons> _btnCurr{};
+    std::array<bool, kMaxButtons> _btnPrev{};
 
-    glm::vec2 m_MousePos       = {};
-    glm::vec2 m_MousePrev      = {};
-    glm::vec2 m_MouseDelta     = {};
-    f32       m_ScrollDelta    = 0.f;
-    bool      m_CursorCaptured = false;
+    glm::vec2 _mousePos       = {};
+    glm::vec2 _mousePrev      = {};
+    glm::vec2 _mouseDelta     = {};
+    f32       _scrollDelta    = 0.f;
+    bool      _cursorCaptured = false;
+
+    // Action bindings
+    std::array<ActionBinding, static_cast<size_t>(InputAction::COUNT)> _bindings{};
+
+    // Gamepad state (mirrors GLFWgamepadstate)
+    static constexpr int kMaxGamepadButtons = 15;
+    static constexpr int kMaxGamepadAxes = 6;
+    bool _gamepadConnected = false;
+    std::array<bool, kMaxGamepadButtons> _gpBtnCurr{};
+    std::array<bool, kMaxGamepadButtons> _gpBtnPrev{};
+    std::array<float, kMaxGamepadAxes>   _gpAxes{};
 
     // Accumulated scroll between frames (written by GLFW callback)
     static float s_ScrollAccum;

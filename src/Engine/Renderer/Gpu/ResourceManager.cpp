@@ -36,8 +36,8 @@ void ResourceManager::Shutdown() {
 TextureHandle ResourceManager::CreateTexture(const TextureDesc& desc) {
     Texture tex{};
     tex.format           = desc.format;
-    tex.width            = desc.width;
-    tex.height           = desc.height;
+    tex.extent.width  = desc.extent.width;
+    tex.extent.height = desc.extent.height;
     tex.mipLevels        = desc.mipLevels;
     tex.arrayLayers      = desc.arrayLayers;
     tex.debugName        = desc.debugName;
@@ -49,8 +49,8 @@ TextureHandle ResourceManager::CreateTexture(const TextureDesc& desc) {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType     = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width  = desc.width;
-    imageInfo.extent.height = desc.height;
+    imageInfo.extent.width  = desc.extent.width;
+    imageInfo.extent.height = desc.extent.height;
     imageInfo.extent.depth  = desc.depth;
     imageInfo.mipLevels     = desc.mipLevels;
     imageInfo.arrayLayers   = desc.arrayLayers;

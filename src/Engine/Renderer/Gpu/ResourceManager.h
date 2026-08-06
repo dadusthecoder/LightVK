@@ -6,9 +6,8 @@
 namespace Lgt::Gpu {
 
 struct TextureDesc {
-    VkFormat           format      = VK_FORMAT_UNDEFINED;
-    uint32_t           width       = 0;
-    uint32_t           height      = 0;
+    VkFormat           format = VK_FORMAT_UNDEFINED;
+    Extent             extent;
     uint32_t           depth       = 1;
     uint32_t           mipLevels   = 1;
     uint32_t           arrayLayers = 1;
@@ -17,10 +16,9 @@ struct TextureDesc {
     VkImageAspectFlags aspectMask  = VK_IMAGE_ASPECT_COLOR_BIT;
     std::string        debugName;
 
-    static TextureDesc ShadowMap(uint32_t width, uint32_t height, std::string debugName = "ShadowMap") {
+    static TextureDesc ShadowMap(Extent extent, std::string debugName = "ShadowMap") {
         TextureDesc desc;
-        desc.width      = width;
-        desc.height     = height;
+        desc.extent     = extent;
         desc.format     = VK_FORMAT_D32_SFLOAT;
         desc.usage      = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         desc.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -28,37 +26,29 @@ struct TextureDesc {
         return desc;
     }
 
-    static TextureDesc
-    Texture2D(uint32_t width, uint32_t height, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, std::string debugName = "Texture2D") {
+    static TextureDesc Texture2D(Extent extent, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, std::string debugName = "Texture2D") {
         TextureDesc desc;
-        desc.width     = width;
-        desc.height    = height;
+        desc.extent    = extent;
         desc.format    = format;
         desc.usage     = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         desc.debugName = std::move(debugName);
         return desc;
     }
 
-    static TextureDesc ColorAttachment(uint32_t    width,
-                                       uint32_t    height,
-                                       VkFormat    format    = VK_FORMAT_R8G8B8A8_UNORM,
-                                       std::string debugName = "ColorAttachment") {
+    static TextureDesc
+    ColorAttachment(Extent extent, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, std::string debugName = "ColorAttachment") {
         TextureDesc desc;
-        desc.width     = width;
-        desc.height    = height;
+        desc.extent    = extent;
         desc.format    = format;
         desc.usage     = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         desc.debugName = std::move(debugName);
         return desc;
     }
 
-    static TextureDesc DepthAttachment(uint32_t    width,
-                                       uint32_t    height,
-                                       VkFormat    format    = VK_FORMAT_D32_SFLOAT,
-                                       std::string debugName = "DepthAttachment") {
+    static TextureDesc
+    DepthAttachment(Extent extent, VkFormat format = VK_FORMAT_D32_SFLOAT, std::string debugName = "DepthAttachment") {
         TextureDesc desc;
-        desc.width      = width;
-        desc.height     = height;
+        desc.extent     = extent;
         desc.format     = format;
         desc.usage      = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         desc.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -66,23 +56,19 @@ struct TextureDesc {
         return desc;
     }
 
-    static TextureDesc StorageImage(uint32_t width, uint32_t height, VkFormat format, std::string debugName = "StorageImage") {
+    static TextureDesc StorageImage(Extent extent, VkFormat format, std::string debugName = "StorageImage") {
         TextureDesc desc;
-        desc.width     = width;
-        desc.height    = height;
+        desc.extent    = extent;
         desc.format    = format;
         desc.usage     = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         desc.debugName = std::move(debugName);
         return desc;
     }
 
-    static TextureDesc TextureCube(uint32_t    width,
-                                   uint32_t    height,
-                                   VkFormat    format    = VK_FORMAT_R8G8B8A8_UNORM,
-                                   std::string debugName = "TextureCube") {
+    static TextureDesc
+    TextureCube(Extent extent, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, std::string debugName = "TextureCube") {
         TextureDesc desc;
-        desc.width       = width;
-        desc.height      = height;
+        desc.extent      = extent;
         desc.arrayLayers = 6;
         desc.format      = format;
         desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -169,6 +155,5 @@ private:
     ResourcePool<Texture, TextureHandle> _textures;
     ResourcePool<Buffer, BufferHandle>   _buffers;
 };
-
 
 } // namespace Lgt::Gpu

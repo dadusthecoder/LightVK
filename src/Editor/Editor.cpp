@@ -11,6 +11,8 @@ void Editor::Init(World* world) {
     _panel_viewport.Init(&_context);
     _panel_node_editor.Init(&_context);
     _panel_inspector.Init(&_context);
+    _panel_console.Init(&_context);
+    _panel_profiler.Init(&_context);
 }
 
 void Editor::Update() {
@@ -37,11 +39,15 @@ void Editor::Update() {
     _panel_viewport.Draw();
     _panel_node_editor.Draw();
     _panel_inspector.Draw();
-
+    _panel_console.Draw();
+    _panel_profiler.Draw();
+    ImGui::ShowDemoWindow();
     ImGui::End();
 }
 
 void Editor::Shutdown() {
+    _panel_profiler.Shutdown();
+    _panel_console.Shutdown();
     _panel_inspector.Shutdown();
     _panel_node_editor.Shutdown();
     _panel_viewport.Shutdown();

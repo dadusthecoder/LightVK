@@ -8,6 +8,8 @@
 
 namespace Lgt::Gpu {
 
+
+
 struct DrawCommand {
     uint32_t  frameIndex        = 0;
     uint32_t  vertexBufferIndex = 0;
@@ -27,17 +29,17 @@ struct FrameUBO {
 };
 
 struct OffscreenTarget {
-    VkImage         colorImage = VK_NULL_HANDLE;
-    VmaAllocation   colorAlloc = VK_NULL_HANDLE;
-    VkImageView     colorView  = VK_NULL_HANDLE;
-    
-    VkImage         depthImage = VK_NULL_HANDLE;
-    VmaAllocation   depthAlloc = VK_NULL_HANDLE;
-    VkImageView     depthView  = VK_NULL_HANDLE;
+    VkImage       colorImage = VK_NULL_HANDLE;
+    VmaAllocation colorAlloc = VK_NULL_HANDLE;
+    VkImageView   colorView  = VK_NULL_HANDLE;
+
+    VkImage       depthImage = VK_NULL_HANDLE;
+    VmaAllocation depthAlloc = VK_NULL_HANDLE;
+    VkImageView   depthView  = VK_NULL_HANDLE;
 
     VkDescriptorSet imguiDescriptor = VK_NULL_HANDLE;
 
-    uint32_t width = 0, height = 0;
+    Extent extent;
 };
 
 class RendererClass {
@@ -50,14 +52,16 @@ public:
     bool BeginFrame(uint32_t frameIndex);
     void EndFrame();
 
-    void ResizeSceneTarget(uint32_t width, uint32_t height);
+    void            ResizeSceneTarget(Extent extent);
     VkDescriptorSet GetSceneTexture() const { return _sceneTarget.imguiDescriptor; }
-    uint32_t GetSceneWidth() const { return _sceneTarget.width; }
-    uint32_t GetSceneHeight() const { return _sceneTarget.height; }
+    Extent          GetSceneExtent() const { return _sceneTarget.extent; }
+    // Extent GetSwapchainExtent(){return { _swapchain.GetExtent }
+    uint32_t GetSceneWidth() const { return _sceneTarget.extent.width; }
+    uint32_t GetSceneHeight() const { return _sceneTarget.extent.height; }
 
     VkCommandBuffer GetCurrentCommandBuffer() const { return _commandBuffers[_currentFrame]; }
     VkCommandBuffer GetUICommandBuffer() const { return _uiCommandBuffers[_currentFrame]; }
-    VkFormat        SwapchainFormat() const { return _swapchain.Format(); }
+    VkFormat        SwapchainFormat() const { return _swapchain.GetFormat(); }
 
 private:
     GLFWwindow* _window = nullptr;
@@ -72,9 +76,9 @@ private:
     std::vector<BufferHandle>    _frameUBO;
 
     // Swapchain depth buffers
-    std::vector<VkImage>         _swapchainDepthImages;
-    std::vector<VmaAllocation>   _swapchainDepthAllocs;
-    std::vector<VkImageView>     _swapchainDepthViews;
+    std::vector<VkImage>       _swapchainDepthImages;
+    std::vector<VmaAllocation> _swapchainDepthAllocs;
+    std::vector<VkImageView>   _swapchainDepthViews;
 
     // Sync
     std::vector<VkSemaphore> _imageAvailableSems;

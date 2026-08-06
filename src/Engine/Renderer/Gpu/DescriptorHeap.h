@@ -13,6 +13,7 @@ public:
 
     uint32_t AllocateSSBO(const BufferHandle& buffer);
     uint32_t AllocateUBO(const BufferHandle& buffer);
+    uint32_t AllocateTexture(const TextureHandle& handle);
 
 private:
     size_t          m_Size          = 0;

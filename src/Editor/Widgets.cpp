@@ -95,7 +95,7 @@ bool DrawColorControl(const std::string& label, glm::vec4& color) {
     return modified;
 }
 
-bool DrawComponentCardBegin(const std::string& name, bool& isExpanded, bool& isEnabled, bool canDisable) {
+bool DrawComponentCardBegin(const std::string& name, bool& isExpanded, bool& isEnabled, bool canDisable, bool* pRemoved) {
     ImGui::PushID(name.c_str());
     
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
@@ -121,6 +121,17 @@ bool DrawComponentCardBegin(const std::string& name, bool& isExpanded, bool& isE
     }
     
     ImGui::Text("%s", name.c_str());
+    
+    if (pRemoved) {
+        ImGui::SameLine(contentRegionAvailable.x - lineHeight);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.6f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+        if (ImGui::Button("X", ImVec2(lineHeight, lineHeight))) {
+            *pRemoved = true;
+        }
+        ImGui::PopStyleColor(3);
+    }
     
     // Make the header area clickable to toggle expand/collapse
     ImGui::SetCursorScreenPos(cursorPos);
@@ -194,6 +205,51 @@ void LiveBadge(const std::string& label, bool active, ImU32 activeColor) {
     ImU32 bgColor = active ? activeColor : IM_COL32(50, 50, 50, 255);
     draw_list->AddRectFilled(pos, ImVec2(pos.x + badgeSize.x, pos.y + badgeSize.y), bgColor, badgeSize.y * 0.5f);
     draw_list->AddText(ImVec2(pos.x + 6.0f, pos.y + 3.0f), ImColor(255, 255, 255, 255), label.c_str());
+}
+
+bool DrawFloatSlider(const std::string& label, float& value, float min, float max, const char* format) {
+    bool modified = false;
+    ImGui::PushID(label.c_str());
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, 100.0f);
+    ImGui::Text("%s", label.c_str());
+    ImGui::NextColumn();
+    ImGui::PushItemWidth(-1);
+    if (ImGui::SliderFloat("##Slider", &value, min, max, format)) {
+        modified = true;
+    }
+    ImGui::PopItemWidth();
+    ImGui::Columns(1);
+    ImGui::PopID();
+    return modified;
+}
+
+bool DrawCheckboxToggle(const std::string& label, bool& value) {
+    bool modified = false;
+    ImGui::PushID(label.c_str());
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, 100.0f);
+    ImGui::Text("%s", label.c_str());
+    ImGui::NextColumn();
+    if (ImGui::Checkbox("##Toggle", &value)) {
+        modified = true;
+    }
+    ImGui::Columns(1);
+    ImGui::PopID();
+    return modified;
+}
+
+void DrawTextReadOnly(const std::string& label, const std::string& text) {
+    ImGui::PushID(label.c_str());
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, 100.0f);
+    ImGui::Text("%s", label.c_str());
+    ImGui::NextColumn();
+    ImGui::PushItemWidth(-1);
+    ImGui::InputText("##ReadOnly", (char*)text.c_str(), text.size(), ImGuiInputTextFlags_ReadOnly);
+    ImGui::PopItemWidth();
+    ImGui::Columns(1);
+    ImGui::PopID();
 }
 
 } // namespace Lgt::Editor::Widgets

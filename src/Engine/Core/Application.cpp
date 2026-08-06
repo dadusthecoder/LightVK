@@ -4,6 +4,7 @@
 #include "Engine/Scene/Components.h"
 #include "Engine/Core/InputManager.h"
 #include "Engine/Core/Logger.h"
+#include "Engine/Core/Profiler.h"
 #include <GLFW/glfw3.h>
 #include "Engine/Renderer/Vulkan/Helpers.h"
 #include "Engine/Renderer/Vulkan/Context.h"
@@ -45,43 +46,63 @@ void Application::Init() {
 
     // ImGui is always initialized (it lives in the engine),
     // but the UI pass is only executed if EnableUi() was called.
+
     _imguiLayer = std::make_unique<ImGuiLayer>();
     _imguiLayer->Init(_window, Gpu::Renderer->SwapchainFormat());
 
-    Gpu::RenderGraph->AddPass<Gpu::Pass::Gbuffer>();
+    // new scene tartget for the scene other 
+    Gpu::Renderer->ResizeSceneTarget({1280, 720});
+
+    Gpu::RenderGraph->AddPass<Gpu::Pass::GBuffer>();
     Gpu::RenderGraph->Compile();
     Gpu::RenderGraph->Execute();
+
+    OnInit();
 }
 
 void Application::Run() {
     uint32_t currentFrame = 0;
 
     while (!glfwWindowShouldClose(_window)) {
+        Profiler::BeginFrame();
 
         _timer->Tick();
         _input->ResetFrame();
-        _world->Update(_timer->DeltaTime());
+
+        {
+            LGT_PROFILE_SCOPE("WorldUpdate");
+            _world->Update(_timer->DeltaTime());
+        }
 
         // App logic hook — pure game logic, no rendering
-        OnUpdate(_timer->DeltaTime());
+        {
+            LGT_PROFILE_SCOPE("OnUpdate");
+            OnUpdate(_timer->DeltaTime());
+        }
 
         if (Gpu::Renderer->BeginFrame(currentFrame)) {
 
             // UI pass — only if enabled (Editor). Zero overhead for Runtime.
             if (uiEnabled_) {
+                LGT_PROFILE_SCOPE("UIPass");
                 BeginUi();
                 OnDrawUi();
                 EndUi();
             }
 
             // Scene pass — find active camera, render all loaded meshes
-            RenderScene();
+            {
+                LGT_PROFILE_SCOPE("RenderScene");
+                RenderScene();
+            }
 
             Gpu::Renderer->EndFrame();
         }
 
         glfwPollEvents();
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+        Profiler::EndFrame();
     }
 }
 

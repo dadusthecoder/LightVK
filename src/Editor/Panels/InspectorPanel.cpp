@@ -89,45 +89,57 @@ void InspectorPanel::DrawComponents(Entity entity) {
     bool isExpanded = true, isEnabled = true;
     
     if (entity.Has<Component::LocalTransform>()) {
-        if (Widgets::DrawComponentCardBegin("LocalTransform", isExpanded, isEnabled, false)) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("LocalTransform", isExpanded, isEnabled, false, &removed)) {
             inspectors.at(entt::type_id<Component::LocalTransform>().hash()).drawCallback(entity, &entity.Get<Component::LocalTransform>());
         }
         Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::LocalTransform>();
     }
     
     if (entity.Has<Component::Camera>()) {
-        if (Widgets::DrawComponentCardBegin("Camera", isExpanded, isEnabled)) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Camera", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::Camera>().hash()).drawCallback(entity, &entity.Get<Component::Camera>());
         }
         Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::Camera>();
     }
 
     if (entity.Has<Component::Material>()) {
-        if (Widgets::DrawComponentCardBegin("Material", isExpanded, isEnabled)) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Material", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::Material>().hash()).drawCallback(entity, &entity.Get<Component::Material>());
         }
         Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::Material>();
     }
     
     if (entity.Has<Component::Mesh>()) {
-        if (Widgets::DrawComponentCardBegin("Mesh", isExpanded, isEnabled)) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Mesh", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::Mesh>().hash()).drawCallback(entity, &entity.Get<Component::Mesh>());
         }
         Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::Mesh>();
     }
     
     if (entity.Has<Component::DirectionalLight>()) {
-        if (Widgets::DrawComponentCardBegin("Directional Light", isExpanded, isEnabled)) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Directional Light", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::DirectionalLight>().hash()).drawCallback(entity, &entity.Get<Component::DirectionalLight>());
         }
         Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::DirectionalLight>();
     }
     
     if (entity.Has<Component::PointLight>()) {
-        if (Widgets::DrawComponentCardBegin("Point Light", isExpanded, isEnabled)) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Point Light", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::PointLight>().hash()).drawCallback(entity, &entity.Get<Component::PointLight>());
         }
         Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::PointLight>();
     }
 }
 

@@ -66,6 +66,22 @@ void SceneGraph::SetParent(Entity parent, Entity child) {
     Attach(child, parent);
 }
 
+void SceneGraph::Reparent(Entity child, Entity newParent) {
+    if (child == newParent) {
+        LIGHTVK_WARN("Cannot parent an entity to itself.");
+        return;
+    }
+    if (IsDescendant(newParent, child)) {
+        LIGHTVK_WARN("Cannot reparent: the specified new parent is a descendant of the child.");
+        return;
+    }
+    Attach(child, newParent);
+}
+
+void SceneGraph::Unparent(Entity child) {
+    Detach(child);
+}
+
 bool SceneGraph::IsDescendant(Entity entity, Entity parent) const noexcept {
     auto current = entity;
     while (current) {

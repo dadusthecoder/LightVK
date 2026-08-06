@@ -128,6 +128,10 @@ uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
 
     LIGHTVK_INFO("DescriptorHeap : Allocated UBO ,  GPU index : {}", gpuIndex);
     return gpuIndex;
+}   
+
+uint32_t DescriptorHeap::AllocateTexture(const TextureHandle& handle) {
+    
 }
 
 } // namespace Lgt::Gpu

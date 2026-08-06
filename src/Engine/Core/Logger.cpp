@@ -1,4 +1,5 @@
 #include "Engine/Core/Logger.h"
+#include "Engine/Core/LogBuffer.h"
 #include <chrono>
 #include <unordered_map>
 
@@ -109,6 +110,24 @@ std::shared_ptr<spdlog::logger>& Logger::Core() {
     return s_CoreLogger;
 }
 
+// Sink that feeds into the in-editor console panel
+class EditorConsoleSink : public spdlog::sinks::base_sink<std::mutex> {
+protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override {
+        // Format timestamp
+        auto time = std::chrono::system_clock::to_time_t(msg.time);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(msg.time.time_since_epoch()) % 1000;
+        std::tm tm_buf;
+        localtime_s(&tm_buf, &time);
+        char timeBuf[32];
+        snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d:%02d.%03d", tm_buf.tm_hour, tm_buf.tm_min, tm_buf.tm_sec, (int)ms.count());
+
+        std::string payload(msg.payload.data(), msg.payload.size());
+        Lgt::LogBuffer::Push(msg.level, payload, std::string(timeBuf));
+    }
+    void flush_() override {}
+};
+
 void Logger::Init() {
     spdlog::init_thread_pool(8192, 1);
 
@@ -139,8 +158,11 @@ void Logger::Init() {
     fileSink->set_pattern_for_level(spdlog::level::err, "[%Y-%m-%d %T.%e] [E] [thread %t] [%n] [%s:%#] [%!] %v");
     fileSink->set_pattern_for_level(spdlog::level::critical, "[%Y-%m-%d %T.%e] [C] [thread %t] [%n] [%s:%#] [%!] %v");
 
+    auto editorSink = std::make_shared<EditorConsoleSink>();
+    editorSink->set_level(spdlog::level::trace);
+
     s_CoreLogger = std::make_shared<spdlog::async_logger>(
-        "LIGHTVK", spdlog::sinks_init_list{consoleSink, fileSink}, spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+        "LIGHTVK", spdlog::sinks_init_list{consoleSink, fileSink, editorSink}, spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 
     s_CoreLogger->set_level(spdlog::level::trace);
     s_CoreLogger->flush_on(spdlog::level::err);

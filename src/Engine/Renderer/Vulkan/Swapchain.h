@@ -31,9 +31,9 @@ public:
     void Recreate(GLFWwindow* window);
 
     // Accessors
-    VkSwapchainKHR                  Handle() const { return _swapchain; }
-    VkFormat                        Format() const { return _format; }
-    VkExtent2D                      Extent() const { return _extent; }
+    VkSwapchainKHR                  GetHandle() const { return _swapchain; }
+    VkFormat                        GetFormat() const { return _format; }
+    VkExtent2D                      GetExtent() const { return _extent; }
     const std::vector<VkImage>&     Images() const { return _images; }
     const std::vector<VkImageView>& ImageViews() const { return _imageViews; }
     uint32_t                        ImageCount() const { return static_cast<uint32_t>(_images.size()); }

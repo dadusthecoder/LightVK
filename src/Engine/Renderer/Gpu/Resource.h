@@ -10,6 +10,11 @@
 
 namespace Lgt::Gpu {
 
+struct Extent {
+    uint32_t width  = 0;
+    uint32_t height = 0;
+};
+
 struct Vertex {
     glm::vec3 position;
     uint32_t  pad0;
@@ -31,12 +36,11 @@ struct Buffer {
 };
 
 struct Texture {
-    VkImage              image            = VK_NULL_HANDLE;
-    VkImageView          defaultView      = VK_NULL_HANDLE;
-    VmaAllocation        allocation       = VK_NULL_HANDLE;
-    VkFormat             format           = VK_FORMAT_UNDEFINED;
-    uint32_t             width            = 0;
-    uint32_t             height           = 0;
+    VkImage              image       = VK_NULL_HANDLE;
+    VkImageView          defaultView = VK_NULL_HANDLE;
+    VmaAllocation        allocation  = VK_NULL_HANDLE;
+    VkFormat             format      = VK_FORMAT_UNDEFINED;
+    Extent               extent;
     uint32_t             mipLevels        = 1;
     uint32_t             arrayLayers      = 1;
     bool                 isSwapchainImage = false;
@@ -44,6 +48,105 @@ struct Texture {
     VkAccessFlags        currentAccess    = 0;
     VkPipelineStageFlags currentStage     = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     std::string          debugName;
+};
+
+struct TextureViewDesc {
+    VkImageViewCreateInfo info = {
+        .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .pNext    = nullptr,
+        .flags    = 0,
+        .image    = VK_NULL_HANDLE,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format   = VK_FORMAT_UNDEFINED,
+        .components = {
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+            VK_COMPONENT_SWIZZLE_IDENTITY,
+        },
+        .subresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = VK_REMAINING_MIP_LEVELS,
+            .baseArrayLayer = 0,
+            .layerCount     = VK_REMAINING_ARRAY_LAYERS,
+        },
+    };
+
+    // ── Common factory methods ──────────────────────────────────────────
+
+    static TextureViewDesc ShaderResource2D(VkFormat format,
+                                            VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT) {
+        TextureViewDesc desc;
+        desc.info.viewType                       = VK_IMAGE_VIEW_TYPE_2D;
+        desc.info.format                         = format;
+        desc.info.subresourceRange.aspectMask     = aspect;
+        desc.info.subresourceRange.baseMipLevel   = 0;
+        desc.info.subresourceRange.levelCount     = VK_REMAINING_MIP_LEVELS;
+        desc.info.subresourceRange.baseArrayLayer = 0;
+        desc.info.subresourceRange.layerCount     = 1;
+        return desc;
+    }
+
+    static TextureViewDesc DepthStencil(VkFormat format = VK_FORMAT_D32_SFLOAT) {
+        TextureViewDesc desc;
+        desc.info.viewType                       = VK_IMAGE_VIEW_TYPE_2D;
+        desc.info.format                         = format;
+        desc.info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_DEPTH_BIT;
+        desc.info.subresourceRange.baseMipLevel   = 0;
+        desc.info.subresourceRange.levelCount     = 1;
+        desc.info.subresourceRange.baseArrayLayer = 0;
+        desc.info.subresourceRange.layerCount     = 1;
+        return desc;
+    }
+
+    static TextureViewDesc StorageImage(VkFormat format) {
+        TextureViewDesc desc;
+        desc.info.viewType                       = VK_IMAGE_VIEW_TYPE_2D;
+        desc.info.format                         = format;
+        desc.info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        desc.info.subresourceRange.baseMipLevel   = 0;
+        desc.info.subresourceRange.levelCount     = 1;
+        desc.info.subresourceRange.baseArrayLayer = 0;
+        desc.info.subresourceRange.layerCount     = 1;
+        return desc;
+    }
+
+    static TextureViewDesc CubeMap(VkFormat format) {
+        TextureViewDesc desc;
+        desc.info.viewType                       = VK_IMAGE_VIEW_TYPE_CUBE;
+        desc.info.format                         = format;
+        desc.info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        desc.info.subresourceRange.baseMipLevel   = 0;
+        desc.info.subresourceRange.levelCount     = VK_REMAINING_MIP_LEVELS;
+        desc.info.subresourceRange.baseArrayLayer = 0;
+        desc.info.subresourceRange.layerCount     = 6;
+        return desc;
+    }
+
+    static TextureViewDesc ArrayLayer(VkFormat format, uint32_t layer, uint32_t mipLevels = VK_REMAINING_MIP_LEVELS) {
+        TextureViewDesc desc;
+        desc.info.viewType                       = VK_IMAGE_VIEW_TYPE_2D;
+        desc.info.format                         = format;
+        desc.info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        desc.info.subresourceRange.baseMipLevel   = 0;
+        desc.info.subresourceRange.levelCount     = mipLevels;
+        desc.info.subresourceRange.baseArrayLayer = layer;
+        desc.info.subresourceRange.layerCount     = 1;
+        return desc;
+    }
+
+    static TextureViewDesc MipLevel(VkFormat format, uint32_t mip) {
+        TextureViewDesc desc;
+        desc.info.viewType                       = VK_IMAGE_VIEW_TYPE_2D;
+        desc.info.format                         = format;
+        desc.info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        desc.info.subresourceRange.baseMipLevel   = mip;
+        desc.info.subresourceRange.levelCount     = 1;
+        desc.info.subresourceRange.baseArrayLayer = 0;
+        desc.info.subresourceRange.layerCount     = 1;
+        return desc;
+    }
 };
 
 LGT_DEFINE_HANDLE(Buffer);

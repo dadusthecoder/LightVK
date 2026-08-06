@@ -14,12 +14,12 @@ target_link_libraries(LightVK_Editor
         LightVKEngine       
 )
 
-# Shaders compile directly to the Bin directory now
-if(EXISTS "${CMAKE_SOURCE_DIR}/assets")
+# Copy Assets to output directory
+if(EXISTS "${CMAKE_SOURCE_DIR}/Assets")
     add_custom_command(TARGET LightVK_Editor POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:LightVK_Editor>/assets"
-        COMMENT "Copying assets → editor output"
+            "${CMAKE_SOURCE_DIR}/Assets"
+            "$<TARGET_FILE_DIR:LightVK_Editor>/Assets"
+        COMMENT "Copying Assets → editor output"
     )
 endif()

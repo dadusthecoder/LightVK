@@ -5,6 +5,8 @@
 #include "Editor/Panels/Viewport.h"
 #include "Editor/Panels/NodeEditorPanel.h"
 #include "Editor/Panels/InspectorPanel.h"
+#include "Editor/Panels/ConsolePanel.h"
+#include "Editor/Panels/ProfilerPanel.h"
 
 struct GLFWwindow;
 
@@ -25,6 +27,8 @@ private:
     Panel::Viewport  _panel_viewport;
     Panel::NodeEditorPanel _panel_node_editor;
     Panel::InspectorPanel  _panel_inspector;
+    Panel::ConsolePanel    _panel_console;
+    Panel::ProfilerPanel   _panel_profiler;
 };
 
 } // namespace Editor

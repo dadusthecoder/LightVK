@@ -25,8 +25,8 @@ void RendererClass::Init(GLFWwindow* window) {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType     = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width  = _swapchain.Extent().width;
-        imageInfo.extent.height = _swapchain.Extent().height;
+        imageInfo.extent.width  = _swapchain.GetExtent().width;
+        imageInfo.extent.height = _swapchain.GetExtent().height;
         imageInfo.extent.depth  = 1;
         imageInfo.mipLevels     = 1;
         imageInfo.arrayLayers   = 1;
@@ -126,8 +126,8 @@ void RendererClass::recreateSwapchain() {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType     = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width  = _swapchain.Extent().width;
-        imageInfo.extent.height = _swapchain.Extent().height;
+        imageInfo.extent.width  = _swapchain.GetExtent().width;
+        imageInfo.extent.height = _swapchain.GetExtent().height;
         imageInfo.extent.depth  = 1;
         imageInfo.mipLevels     = 1;
         imageInfo.arrayLayers   = 1;
@@ -172,11 +172,11 @@ void RendererClass::Render(DrawList* list, const glm::mat4& viewProj) {
     //------------------------------------------------
     auto cmd = _commandBuffers[_currentFrame];
 
-    uint32_t targetWidth  = _swapchain.Extent().width;
-    uint32_t targetHeight = _swapchain.Extent().height;
+    uint32_t targetWidth  = _swapchain.GetExtent().width;
+    uint32_t targetHeight = _swapchain.GetExtent().height;
     if (_sceneTarget.colorImage != VK_NULL_HANDLE) {
-        targetWidth  = _sceneTarget.width;
-        targetHeight = _sceneTarget.height;
+        targetWidth  = _sceneTarget.extent.width;
+        targetHeight = _sceneTarget.extent.height;
     }
 
     VkViewport viewport{};
@@ -223,7 +223,7 @@ bool RendererClass::BeginFrame(uint32_t frameindex) {
     vkWaitForFences(Vulkan::g_Device->Logical(), 1, &_inFlightFences[_currentFrame], VK_TRUE, UINT64_MAX);
 
     VkResult result = vkAcquireNextImageKHR(Vulkan::g_Device->Logical(),
-                                            _swapchain.Handle(),
+                                            _swapchain.GetHandle(),
                                             UINT64_MAX,
                                             _imageAvailableSems[_currentFrame],
                                             VK_NULL_HANDLE,
@@ -309,8 +309,8 @@ bool RendererClass::BeginFrame(uint32_t frameindex) {
     return true;
 }
 
-void RendererClass::ResizeSceneTarget(uint32_t width, uint32_t height) {
-    if (_sceneTarget.width == width && _sceneTarget.height == height)
+void RendererClass::ResizeSceneTarget(Extent extent) {
+    if (_sceneTarget.extent.width == extent.width && _sceneTarget.extent.height == extent.height)
         return;
 
     // Destroy old resources safely
@@ -326,18 +326,18 @@ void RendererClass::ResizeSceneTarget(uint32_t width, uint32_t height) {
         _sceneTarget.depthImage = VK_NULL_HANDLE;
     }
 
-    _sceneTarget.width  = width;
-    _sceneTarget.height = height;
+    _sceneTarget.extent.width  = extent.width;
+    _sceneTarget.extent.height = extent.height;
 
-    if (width == 0 || height == 0)
+    if (extent.width == 0 || extent.height == 0)
         return;
 
     // Create new color image
     VkImageCreateInfo imageInfo{};
     imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType     = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width  = width;
-    imageInfo.extent.height = height;
+    imageInfo.extent.width  = extent.width;
+    imageInfo.extent.height = extent.height;
     imageInfo.extent.depth  = 1;
     imageInfo.mipLevels     = 1;
     imageInfo.arrayLayers   = 1;
@@ -367,8 +367,8 @@ void RendererClass::ResizeSceneTarget(uint32_t width, uint32_t height) {
     VkImageCreateInfo depthInfo{};
     depthInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     depthInfo.imageType     = VK_IMAGE_TYPE_2D;
-    depthInfo.extent.width  = width;
-    depthInfo.extent.height = height;
+    depthInfo.extent.width  = extent.width;
+    depthInfo.extent.height = extent.height;
     depthInfo.extent.depth  = 1;
     depthInfo.mipLevels     = 1;
     depthInfo.arrayLayers   = 1;
@@ -535,14 +535,14 @@ void RendererClass::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
     if (useSceneTarget) {
         // Render to offscreen scene target
         colorAttachment.imageView = _sceneTarget.colorView;
-        renderingInfo.renderArea  = {{0, 0}, {_sceneTarget.width, _sceneTarget.height}};
+        renderingInfo.renderArea  = {{0, 0}, {_sceneTarget.extent.width, _sceneTarget.extent.height}};
 
         depthAttachment.imageView      = _sceneTarget.depthView;
         renderingInfo.pDepthAttachment = &depthAttachment;
     } else {
         // Render directly to swapchain
         colorAttachment.imageView = _swapchain.ImageViews()[_currentImageIndex];
-        renderingInfo.renderArea  = {{0, 0}, _swapchain.Extent()};
+        renderingInfo.renderArea  = {{0, 0}, _swapchain.GetExtent()};
 
         if (!isUiPass) {
             depthAttachment.imageView      = _swapchainDepthViews[_currentImageIndex];
@@ -647,7 +647,7 @@ void RendererClass::EndFrame() {
     if (vkQueueSubmit(Lgt::Vulkan::g_Device->GraphicsQueue(), 1, &submitInfo, _inFlightFences[_currentFrame]) != VK_SUCCESS)
         throw std::runtime_error("vkQueueSubmit failed");
 
-    VkSwapchainKHR   swapchains[] = {_swapchain.Handle()}; // <-- .Handle()
+    VkSwapchainKHR   swapchains[] = {_swapchain.GetHandle()}; // <-- .Handle()
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
@@ -745,7 +745,7 @@ void RendererClass::createTestResources() {
     renderingInfo.colorAttachmentCount  = 1;
     renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
 
-    VkFormat colorFormat                  = _swapchain.Format();
+    VkFormat colorFormat                  = _swapchain.GetFormat();
     renderingInfo.pColorAttachmentFormats = &colorFormat;
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};

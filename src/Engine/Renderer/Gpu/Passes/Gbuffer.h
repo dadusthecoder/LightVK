@@ -10,11 +10,28 @@
 namespace Lgt {
 namespace Gpu::Pass {
 
-class Gbuffer {
+class GBuffer {
 public:
-    static void Execute(RenderGraphPass* pass, void* userdata);
+    struct PassContext {
+
+        TextureHandle albedo;
+        TextureHandle depth;
+        TextureHandle normal;
+
+        uint64_t gpuAlbedo;
+        uint64_t gpuNormal;
+        uint64_t gpuDepth;
+    };
+
+    static const PassContext& GetContext();
+
     static void Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass);
+    static void Execute(RenderGraphPass* pass, void* userdata);
+
+private:
+    static PassContext Context;
 };
+
 } // namespace Gpu::Pass
 
 } // namespace Lgt
