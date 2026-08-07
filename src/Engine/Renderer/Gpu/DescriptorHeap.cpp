@@ -8,11 +8,22 @@ namespace Lgt::Gpu {
 
 DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHeap) {
 
-    m_Size = size;
-
     VkBufferCreateInfo bufferci{};
+
+    if (isResorceHeap) {
+        bufferci.usage       |= VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+        _reserved_range_size  = Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
+    } else if (isSamplerHeap) {
+        bufferci.usage       |= VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
+        _reserved_range_size  = Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
+    }
+
+    _usable_size           = size;
+    _total_size            = _usable_size + _reserved_range_size;
+    _reserved_range_offset = _total_size - _reserved_range_size;
+
     bufferci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferci.size  = size;
+    bufferci.size  = _total_size;
     bufferci.usage = VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vkCreateBuffer(Lgt::Vulkan::g_Device->Logical(), &bufferci, nullptr, &m_Buffer);
@@ -23,9 +34,8 @@ DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHe
     VkMemoryAllocateInfo allocateinfo{};
     allocateinfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocateinfo.allocationSize  = memReu.size;
-    allocateinfo.memoryTypeIndex = selectMemoryType(Lgt::Vulkan::g_Device,
-                                                    memReu.memoryTypeBits,
-                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    allocateinfo.memoryTypeIndex = selectMemoryType(
+        Lgt::Vulkan::g_Device, memReu.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     VkMemoryAllocateFlagsInfo flagsinfo{};
     flagsinfo.sType      = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
@@ -40,8 +50,16 @@ DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHe
     VkBufferDeviceAddressInfo addressinfo{};
     addressinfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     addressinfo.buffer = m_Buffer;
-    m_DeviceAddress    = vkGetBufferDeviceAddress(Lgt::Vulkan::g_Device->Logical(), &addressinfo);
-    LIGHTVK_INFO("Created DescriptorHeap -size : {} bytes -BufferDeviceAdder : {}", m_Size, m_DeviceAddress);
+
+    m_DeviceAddress = vkGetBufferDeviceAddress(Lgt::Vulkan::g_Device->Logical(), &addressinfo);
+
+    LIGHTVK_INFO("Created , total -size : {} MB -BufferDeviceAdder : {}", (float)_total_size / 1024, m_DeviceAddress);
+    LIGHTVK_INFO(
+        "Usable size : {} MB  ,ReservedRange size : {} MB", (float)_usable_size / 1024, (float)_reserved_range_size / 1024);
+
+    _texture_offset = AlignUp((_usable_size / 100) * 25, Vulkan::g_Device->DescriptorHeapProperties().imageDescriptorAlignment);
+    _sampler_offset = AlignUp(_sampler_offset, Vulkan::g_Device->DescriptorHeapProperties().samplerDescriptorAlignment);
+    _buffer_offset  = AlignUp(_buffer_offset, Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorAlignment);
 }
 
 DescriptorHeap::~DescriptorHeap() {
@@ -53,10 +71,10 @@ DescriptorHeap::~DescriptorHeap() {
 }
 
 uint32_t DescriptorHeap::AllocateSSBO(const BufferHandle& buffer) {
-    m_CurrentOffset   = AlignUp(m_CurrentOffset, Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorAlignment);
-    uint32_t gpuIndex = m_CurrentOffset / Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
-    LGT_ASSERT(m_CurrentOffset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
-               "Heap OverFlow");
+
+    uint32_t gpuIndex = _buffer_offset / Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+    LGT_ASSERT(_buffer_offset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < _texture_offset,
+               "BufferDescriptor Heap OverFlow");
 
     auto* gpubuffer = Resources->GetBuffer(buffer);
     LGT_ASSERT(gpubuffer, "");
@@ -76,26 +94,33 @@ uint32_t DescriptorHeap::AllocateSSBO(const BufferHandle& buffer) {
     descInfo.data  = descData;
 
     void* ptr;
-    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, m_Size, 0, &ptr);
+    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, _total_size, 0, &ptr);
+
+    if ((uint64_t)ptr % Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment != 0) {
+        LIGHTVK_WARN(
+            "ResourceHeap's start must be aligned to Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment ");
+        ptr = (void*)AlignUp((uint64_t)ptr, Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment);
+    }
 
     VkHostAddressRangeEXT hostRange{};
-    hostRange.address = (uint8_t*)ptr + m_CurrentOffset;
+    hostRange.address = (uint8_t*)ptr + _buffer_offset;
     hostRange.size    = Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
     vkWriteResourceDescriptorsEXT(Vulkan::g_Device->Logical(), 1, &descInfo, &hostRange);
     vkUnmapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory);
 
-    m_CurrentOffset += Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+    LIGHTVK_INFO("Allocated at offset {}  GPU index : {}", _buffer_offset, gpuIndex);
 
-    LIGHTVK_INFO("DescriptorHeap : Allocated SSBO ,  GPU index : {}", gpuIndex);
+    _buffer_offset += Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+
     return gpuIndex;
 }
 
 uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
-    m_CurrentOffset   = AlignUp(m_CurrentOffset, Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorAlignment);
-    uint32_t gpuIndex = m_CurrentOffset / Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
-    LGT_ASSERT(m_CurrentOffset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < m_Size,
-               "Heap OverFlow");
+
+    uint32_t gpuIndex = _buffer_offset / Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+    LGT_ASSERT(_buffer_offset + Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize < _texture_offset,
+               "Bufferdescriptor Heap OverFlow");
 
     auto* gpubuffer = Resources->GetBuffer(buffer);
     LGT_ASSERT(gpubuffer, "");
@@ -115,23 +140,96 @@ uint32_t DescriptorHeap::AllocateUBO(const BufferHandle& buffer) {
     descInfo.data  = descData;
 
     void* ptr;
-    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, m_Size, 0, &ptr);
+    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, _total_size, 0, &ptr);
+
+    if ((uint64_t)ptr % Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment != 0) {
+        LIGHTVK_WARN(
+            "ResourceHeap's start must be aligned to Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment ");
+        ptr = (void*)AlignUp((uint64_t)ptr, Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment);
+    }
 
     VkHostAddressRangeEXT hostRange{};
-    hostRange.address = (uint8_t*)ptr + m_CurrentOffset;
+    hostRange.address = (uint8_t*)ptr + _buffer_offset;
     hostRange.size    = Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
     vkWriteResourceDescriptorsEXT(Vulkan::g_Device->Logical(), 1, &descInfo, &hostRange);
     vkUnmapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory);
 
-    m_CurrentOffset += Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
+    LIGHTVK_INFO("Allocated at offset {}  GPU index : {}", _buffer_offset, gpuIndex);
+    _buffer_offset += Vulkan::g_Device->DescriptorHeapProperties().bufferDescriptorSize;
 
-    LIGHTVK_INFO("DescriptorHeap : Allocated UBO ,  GPU index : {}", gpuIndex);
     return gpuIndex;
-}   
+}
 
-uint32_t DescriptorHeap::AllocateTexture(const TextureHandle& handle) {
-    
+uint32_t DescriptorHeap::AllocateTexture(const TextureHandle& handle, const VkImageViewCreateInfo& view, VkImageLayout layout) {
+
+    uint32_t gpuIndex = _texture_offset / Vulkan::g_Device->DescriptorHeapProperties().imageDescriptorSize;
+    LGT_ASSERT(_texture_offset + Vulkan::g_Device->DescriptorHeapProperties().imageDescriptorSize < _usable_size,
+               "Heap OverFlow");
+
+    VkImageDescriptorInfoEXT imageInfo{};
+    imageInfo.sType  = VK_STRUCTURE_TYPE_IMAGE_DESCRIPTOR_INFO_EXT;
+    imageInfo.layout = layout;
+    imageInfo.pView  = &view;
+
+    VkResourceDescriptorDataEXT descData{};
+    descData.pImage = &imageInfo;
+
+    VkResourceDescriptorInfoEXT descInfo{};
+    descInfo.sType = VK_STRUCTURE_TYPE_RESOURCE_DESCRIPTOR_INFO_EXT;
+    descInfo.type  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descInfo.data  = descData;
+
+    void* ptr;
+
+    vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, _total_size, 0, &ptr);
+
+    if ((uint64_t)ptr % Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment != 0) {
+        LIGHTVK_WARN(
+            "ResourceHeap's start must be aligned to Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment ");
+        ptr = (void*)AlignUp((uint64_t)ptr, Vulkan::g_Device->DescriptorHeapProperties().resourceHeapAlignment);
+    }
+
+    VkHostAddressRangeEXT hostRange{};
+    hostRange.address = (uint8_t*)ptr + _texture_offset;
+    hostRange.size    = Vulkan::g_Device->DescriptorHeapProperties().imageDescriptorSize;
+
+    vkWriteResourceDescriptorsEXT(Vulkan::g_Device->Logical(), 1, &descInfo, &hostRange);
+
+    vkUnmapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory);
+
+    LIGHTVK_INFO("Allocated at offset {}  GPU index : {}", _texture_offset, gpuIndex);
+    _texture_offset += Vulkan::g_Device->DescriptorHeapProperties().imageDescriptorSize;
+
+    return gpuIndex;
+}
+
+uint32_t DescriptorHeap::AllocateSampler(const VkSamplerCreateInfo& samplerInfo) {
+    const auto& properties = Vulkan::g_Device->DescriptorHeapProperties();
+
+    uint32_t gpuIndex = static_cast<uint32_t>(_sampler_offset / properties.samplerDescriptorSize);
+    LGT_ASSERT(_sampler_offset + properties.samplerDescriptorSize <= _usable_size, "Sampler heap overflow");
+
+    void* ptr = nullptr;
+    VK_CHECK(vkMapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory, 0, _total_size, 0, &ptr));
+
+    if ((uint64_t)ptr % Vulkan::g_Device->DescriptorHeapProperties().samplerHeapAlignment != 0) {
+        LIGHTVK_WARN(
+            "ResourceHeap's start must be aligned to Vulkan::g_Device->DescriptorHeapProperties().samplerHeapAlignment ");
+        ptr = (void*)AlignUp((uint64_t)ptr, Vulkan::g_Device->DescriptorHeapProperties().samplerHeapAlignment);
+    }
+
+    VkHostAddressRangeEXT hostRange{};
+    hostRange.address = static_cast<uint8_t*>(ptr) + _sampler_offset;
+    hostRange.size    = properties.samplerDescriptorSize;
+
+    VK_CHECK(vkWriteSamplerDescriptorsEXT(Vulkan::g_Device->Logical(), 1, &samplerInfo, &hostRange));
+    vkUnmapMemory(Vulkan::g_Device->Logical(), m_DeviceMemory);
+
+    LIGHTVK_INFO("Allocated at offset {}  GPU index : {}", _sampler_offset, gpuIndex);
+    _sampler_offset += properties.samplerDescriptorSize;
+
+    return gpuIndex;
 }
 
 } // namespace Lgt::Gpu

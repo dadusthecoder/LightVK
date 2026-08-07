@@ -240,27 +240,26 @@ bool RendererClass::BeginFrame(uint32_t frameindex) {
 
     // resource heap bind info
     VkDeviceAddressRangeEXT resourceDeviceAdderRange{};
-    resourceDeviceAdderRange.size    = ResourceHeap->Size();
+    resourceDeviceAdderRange.size    = ResourceHeap->GetSize();
     resourceDeviceAdderRange.address = ResourceHeap->BufferAddress();
 
     VkBindHeapInfoEXT resourceBind{};
-    resourceBind.sType     = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
-    resourceBind.heapRange = resourceDeviceAdderRange;
-    resourceBind.reservedRangeOffset =
-        ResourceHeap->Size() - Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
-    resourceBind.reservedRangeSize = Lgt::Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
+    resourceBind.sType               = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
+    resourceBind.heapRange           = resourceDeviceAdderRange;
+    resourceBind.reservedRangeOffset = ResourceHeap->GerReservedRangeOffset();
+    resourceBind.reservedRangeSize   = ResourceHeap->GetReservedRangeSize();
 
     // smapler heap bind info
     VkDeviceAddressRangeEXT samplerDeviceAdderRange{};
-    samplerDeviceAdderRange.size    = SamplerHeap->Size();
+    samplerDeviceAdderRange.size    = SamplerHeap->GetSize();
     samplerDeviceAdderRange.address = SamplerHeap->BufferAddress();
 
     VkBindHeapInfoEXT samplerBind{};
-    samplerBind.sType     = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
-    samplerBind.heapRange = samplerDeviceAdderRange;
-    samplerBind.reservedRangeOffset =
-        SamplerHeap->Size() - Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
-    samplerBind.reservedRangeSize = Lgt::Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange;
+    samplerBind.sType               = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
+    samplerBind.heapRange           = samplerDeviceAdderRange;
+    samplerBind.reservedRangeOffset = SamplerHeap->GerReservedRangeOffset();
+    samplerBind.reservedRangeSize   = SamplerHeap->GetReservedRangeSize();
+
 
     VkCommandBuffer cmd = _commandBuffers[_currentFrame];
     vkResetCommandBuffer(cmd, 0);
@@ -341,7 +340,7 @@ void RendererClass::ResizeSceneTarget(Extent extent) {
     imageInfo.extent.depth  = 1;
     imageInfo.mipLevels     = 1;
     imageInfo.arrayLayers   = 1;
-    imageInfo.format        = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.format        = _swapchain.GetFormat();
     imageInfo.tiling        = VK_IMAGE_TILING_OPTIMAL;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage         = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -354,7 +353,7 @@ void RendererClass::ResizeSceneTarget(Extent extent) {
     viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image                           = _sceneTarget.colorImage;
     viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format                          = VK_FORMAT_R8G8B8A8_UNORM;
+    viewInfo.format                          = _swapchain.GetFormat();
     viewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     viewInfo.subresourceRange.baseMipLevel   = 0;
     viewInfo.subresourceRange.levelCount     = 1;

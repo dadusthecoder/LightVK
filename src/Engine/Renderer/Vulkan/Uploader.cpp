@@ -8,12 +8,12 @@ namespace Lgt::Vulkan {
 VulkanLoadTimeStagingUploader::VulkanLoadTimeStagingUploader() {
 
     auto     device         = g_Device->Logical();
-    uint32_t transferFamily = g_Device->TransferFamily();
+    uint32_t graphicsFamily = g_Device->GraphicsFamily();
 
-    // Command pool on transfer queue
+    // Use the graphics queue because the final image barrier targets shader access.
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.queueFamilyIndex = transferFamily;
+    poolInfo.queueFamilyIndex = graphicsFamily;
     poolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     VK_CHECK(vkCreateCommandPool(device, &poolInfo, nullptr, &m_Pool));
 
@@ -196,7 +196,7 @@ void VulkanLoadTimeStagingUploader::Flush() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers    = &m_Cmd;
 
-    VK_CHECK(vkQueueSubmit(g_Device->TransferQueue(), 1, &submitInfo, m_Fence));
+    VK_CHECK(vkQueueSubmit(g_Device->GraphicsQueue(), 1, &submitInfo, m_Fence));
     VK_CHECK(vkWaitForFences(g_Device->Logical(), 1, &m_Fence, VK_TRUE, UINT64_MAX));
     VK_CHECK(vkResetFences(g_Device->Logical(), 1, &m_Fence));
 

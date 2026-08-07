@@ -8,6 +8,10 @@
 #include "Editor/Panels/ConsolePanel.h"
 #include "Editor/Panels/ProfilerPanel.h"
 
+#if defined(LIGHTVK_EDITOR_TESTS)
+#include "Editor/Tests/EditorTestRunner.h"
+#endif
+
 struct GLFWwindow;
 
 namespace Lgt {
@@ -29,6 +33,9 @@ private:
     Panel::InspectorPanel  _panel_inspector;
     Panel::ConsolePanel    _panel_console;
     Panel::ProfilerPanel   _panel_profiler;
+#if defined(LIGHTVK_EDITOR_TESTS)
+    Tests::EditorTestRunner _test_runner;
+#endif
 };
 
 } // namespace Editor

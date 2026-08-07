@@ -24,6 +24,7 @@ public:
     };
 
     static const PassContext& GetContext();
+    static void Reset();
 
     static void Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass);
     static void Execute(RenderGraphPass* pass, void* userdata);

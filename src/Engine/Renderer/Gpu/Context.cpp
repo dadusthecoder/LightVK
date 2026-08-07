@@ -12,18 +12,16 @@ ResourceManager*  Resources    = nullptr;
 RenderGraphClass* RenderGraph  = nullptr;
 
 void Init(GLFWwindow* window) {
-    ResourceHeap =
-        new DescriptorHeap(MAX_RESOURCES * 32 + Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange);
-    SamplerHeap =
-        new DescriptorHeap(MAX_SAMPLERS * 16 + Vulkan::g_Device->DescriptorHeapProperties().minSamplerHeapReservedRange);
 
-    Resources = new ResourceManager();
-    Resources->Init();
+    ResourceHeap = new DescriptorHeap(MAX_RESOURCES * 32, true, false);
+    SamplerHeap  = new DescriptorHeap(MAX_SAMPLERS * 16, false, true);
 
-    Renderer = new RendererClass();
-    Renderer->Init(window);
-
+    Resources   = new ResourceManager();
+    Renderer    = new RendererClass();
     RenderGraph = new RenderGraphClass();
+
+    Resources->Init();
+    Renderer->Init(window);
     RenderGraph->Init();
 }
 
@@ -35,7 +33,7 @@ void Shutdown() {
     delete Resources;
 
     delete ResourceHeap;
-    
+
     delete SamplerHeap;
 
     Renderer->ShutDown();

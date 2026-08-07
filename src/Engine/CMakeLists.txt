@@ -11,6 +11,7 @@ add_library(LightVKEngine SHARED
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/imgui)
 set(IMGUI_NODE_EDITOR_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/imgui-node-editor)
+set(STB_IMAGE_DIR ${IMGUI_NODE_EDITOR_DIR}/external/stb_image)
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
@@ -35,6 +36,7 @@ target_include_directories(LightVKEngine
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${IMGUI_NODE_EDITOR_DIR}
+    ${STB_IMAGE_DIR}
 )
 
 find_library(VOLK_LIB NAMES volk PATHS D:/Vulkan/Lib REQUIRED)

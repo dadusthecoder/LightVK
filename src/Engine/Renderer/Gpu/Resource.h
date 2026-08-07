@@ -50,6 +50,12 @@ struct Texture {
     std::string          debugName;
 };
 
+struct Sampler {
+    VkSampler  sampler         = VK_NULL_HANDLE;
+    uint32_t   descriptorIndex = 0;
+    std::string debugName;
+};
+
 struct TextureViewDesc {
     VkImageViewCreateInfo info = {
         .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -151,6 +157,7 @@ struct TextureViewDesc {
 
 LGT_DEFINE_HANDLE(Buffer);
 LGT_DEFINE_HANDLE(Texture);
+LGT_DEFINE_HANDLE(Sampler);
 
 // Resource Pool Template
 template <typename ResourceType, typename Handle> class ResourcePool {

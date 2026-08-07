@@ -13,6 +13,9 @@ void Editor::Init(World* world) {
     _panel_inspector.Init(&_context);
     _panel_console.Init(&_context);
     _panel_profiler.Init(&_context);
+#if defined(LIGHTVK_EDITOR_TESTS)
+    _test_runner.Init(world);
+#endif
 }
 
 void Editor::Update() {
@@ -41,6 +44,9 @@ void Editor::Update() {
     _panel_inspector.Draw();
     _panel_console.Draw();
     _panel_profiler.Draw();
+#if defined(LIGHTVK_EDITOR_TESTS)
+    _test_runner.DrawUi();
+#endif
     ImGui::ShowDemoWindow();
     ImGui::End();
 }
@@ -52,6 +58,9 @@ void Editor::Shutdown() {
     _panel_node_editor.Shutdown();
     _panel_viewport.Shutdown();
     _panel_hirearchy.Shutdown();
+#if defined(LIGHTVK_EDITOR_TESTS)
+    _test_runner.Shutdown();
+#endif
 }
 } // namespace Editor
 

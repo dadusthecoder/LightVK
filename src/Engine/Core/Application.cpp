@@ -12,25 +12,15 @@
 #include "Engine/Renderer/Gpu/Resource.h"
 #include "Engine/UI/ImGuiLayer.h"
 #include "Engine/Core/Math.h"
-#include "Engine/Renderer/Gpu/Passes/Gbuffer.h"
 
 // Asset loading (will be moved to Engine later)
 #include "Engine/Assets/Assets.h"
 
 namespace Lgt {
 
-void OnPassExecute(Gpu::RenderGraphPass* pass, void* userdata) {
-    LIGHTVK_INFO("Executing Pass {}", pass->name);
-}
 void Application::Init() {
 
     LOG_INIT();
-
-    LIGHTVK_CRITICAL("Testing Critical");
-    LIGHTVK_ERROR("Testing Error");
-    LIGHTVK_TRACE("Testing Trace");
-    LIGHTVK_WARN("Testing Warn");
-    LIGHTVK_INFO("Testing Info");
 
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -50,12 +40,8 @@ void Application::Init() {
     _imguiLayer = std::make_unique<ImGuiLayer>();
     _imguiLayer->Init(_window, Gpu::Renderer->SwapchainFormat());
 
-    // new scene tartget for the scene other 
+    // new scene tartget for the scene other
     Gpu::Renderer->ResizeSceneTarget({1280, 720});
-
-    Gpu::RenderGraph->AddPass<Gpu::Pass::GBuffer>();
-    Gpu::RenderGraph->Compile();
-    Gpu::RenderGraph->Execute();
 
     OnInit();
 }

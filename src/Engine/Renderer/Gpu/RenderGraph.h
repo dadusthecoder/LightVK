@@ -109,6 +109,7 @@ class RenderGraphClass {
 public:
     void Init();
     void ShoutDown();
+    void Reset();
 
     // TODO
     // 2) Barrier Generation

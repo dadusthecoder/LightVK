@@ -6,11 +6,20 @@ namespace Gpu::Pass {
 
 GBuffer::PassContext GBuffer::Context;
 
-void GBuffer::Execute(RenderGraphPass* pass, void* userdata) {
-    
-    
-
+const GBuffer::PassContext& GBuffer::GetContext() {
+    return Context;
 }
+
+void GBuffer::Reset() {
+    if (Resources != nullptr) {
+        Resources->DestroyTexture(Context.albedo);
+        Resources->DestroyTexture(Context.normal);
+        Resources->DestroyTexture(Context.depth);
+    }
+    Context = {};
+}
+
+void GBuffer::Execute(RenderGraphPass* pass, void* userdata) {}
 
 void GBuffer::Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass) {
 
@@ -18,8 +27,26 @@ void GBuffer::Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass) {
     Context.normal = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetSceneExtent()));
     Context.depth  = Resources->CreateTexture(TextureDesc::DepthAttachment(Renderer->GetSceneExtent()));
 
-    // TODO
-    // Context.gpuAlbedo = ResourceHeap->AllocateTexture(albedo);
+    VkImageViewCreateInfo imageViewCi;
+    imageViewCi.sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imageViewCi.viewType   = VK_IMAGE_VIEW_TYPE_2D;
+    imageViewCi.format     = VK_FORMAT_R8G8B8_SRGB;
+    imageViewCi.components = {
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+        VK_COMPONENT_SWIZZLE_IDENTITY,
+    };
+
+    auto texture = Resources->GetTexture(Context.albedo);
+
+    imageViewCi.image                           = texture->image;
+    imageViewCi.subresourceRange.baseArrayLayer = 0;
+    imageViewCi.subresourceRange.baseMipLevel   = 0;
+    imageViewCi.subresourceRange.layerCount     = texture->arrayLayers;
+    imageViewCi.subresourceRange.levelCount     = texture->mipLevels;
+
+   // Context.gpuAlbedo = ResourceHeap->AllocateTexture(Context.albedo, imageViewCi, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     pass->name = "GBuffer";
     pass->Writes(GBuffer::Context.albedo); // Albedo

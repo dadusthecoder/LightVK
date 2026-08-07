@@ -137,6 +137,46 @@ struct BufferDesc {
     }
 };
 
+struct SamplerDesc {
+    VkFilter              magFilter               = VK_FILTER_LINEAR;
+    VkFilter              minFilter               = VK_FILTER_LINEAR;
+    VkSamplerMipmapMode   mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    VkSamplerAddressMode  addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    VkSamplerAddressMode  addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    VkSamplerAddressMode  addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    float                 mipLodBias              = 0.0f;
+    VkBool32              anisotropyEnable        = VK_FALSE;
+    float                 maxAnisotropy           = 1.0f;
+    VkBool32              compareEnable           = VK_FALSE;
+    VkCompareOp           compareOp               = VK_COMPARE_OP_ALWAYS;
+    float                 minLod                  = 0.0f;
+    float                 maxLod                  = VK_LOD_CLAMP_NONE;
+    VkBorderColor         borderColor             = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+    VkBool32              unnormalizedCoordinates = VK_FALSE;
+    std::string           debugName;
+
+    VkSamplerCreateInfo ToVkCreateInfo() const {
+        VkSamplerCreateInfo info{};
+        info.sType                  = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        info.magFilter              = magFilter;
+        info.minFilter              = minFilter;
+        info.mipmapMode             = mipmapMode;
+        info.addressModeU           = addressModeU;
+        info.addressModeV           = addressModeV;
+        info.addressModeW           = addressModeW;
+        info.mipLodBias              = mipLodBias;
+        info.anisotropyEnable        = anisotropyEnable;
+        info.maxAnisotropy           = maxAnisotropy;
+        info.compareEnable           = compareEnable;
+        info.compareOp               = compareOp;
+        info.minLod                  = minLod;
+        info.maxLod                  = maxLod;
+        info.borderColor             = borderColor;
+        info.unnormalizedCoordinates = unnormalizedCoordinates;
+        return info;
+    }
+};
+
 class ResourceManager {
 public:
     void Init();
@@ -144,8 +184,11 @@ public:
 
     TextureHandle CreateTexture(const TextureDesc& desc);
     void          DestroyTexture(TextureHandle handle);
+    SamplerHandle CreateSampler(const SamplerDesc& desc);
+    void          DestroySampler(SamplerHandle handle);
 
     Texture* GetTexture(TextureHandle handle) { return _textures.Get(handle); }
+    Sampler* GetSampler(SamplerHandle handle) { return _samplers.Get(handle); }
     Buffer*  GetBuffer(BufferHandle handle) { return _buffers.Get(handle); }
 
     BufferHandle CreateBuffer(const BufferDesc& desc);
@@ -153,6 +196,7 @@ public:
 
 private:
     ResourcePool<Texture, TextureHandle> _textures;
+    ResourcePool<Sampler, SamplerHandle> _samplers;
     ResourcePool<Buffer, BufferHandle>   _buffers;
 };
 

@@ -9,6 +9,13 @@ void RenderGraphClass::ShoutDown() {
     LIGHTVK_INFO("RenderGraph Shutting Down");
 }
 
+void RenderGraphClass::Reset() {
+    passes_.clear();
+    nodes_.clear();
+    execution_.clear();
+    resources_.clear();
+}
+
 void RenderGraphClass::Execute() {
     for (auto passID : execution_) {
         auto& pass = passes_[passID];

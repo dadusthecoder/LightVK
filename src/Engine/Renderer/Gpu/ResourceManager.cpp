@@ -1,11 +1,11 @@
 #include "Engine/Renderer/Vulkan/Allocator.h"
 #include "Engine/Renderer/Vulkan/Context.h"
 #include "Engine/Core/Logger.h"
+#include "Engine/Renderer/Gpu/Context.h"
 
 #include "ResourceManager.h"
 
 namespace Lgt::Gpu {
-
 
 void ResourceManager::Init() {
     LIGHTVK_INFO("ResourceManager Initialized");
@@ -23,6 +23,12 @@ void ResourceManager::Shutdown() {
     });
     _textures.Clear();
 
+    _samplers.ForEachAlive([this](Sampler& sampler, SamplerHandle handle) {
+        if (sampler.sampler != VK_NULL_HANDLE)
+            vkDestroySampler(Vulkan::g_Device->Logical(), sampler.sampler, nullptr);
+    });
+    _samplers.Clear();
+
     _buffers.ForEachAlive([this](Buffer& buf, BufferHandle handle) {
         if (buf.mapped)
             Vulkan::g_Allocator->unmap(buf.allocation);
@@ -36,8 +42,8 @@ void ResourceManager::Shutdown() {
 TextureHandle ResourceManager::CreateTexture(const TextureDesc& desc) {
     Texture tex{};
     tex.format           = desc.format;
-    tex.extent.width  = desc.extent.width;
-    tex.extent.height = desc.extent.height;
+    tex.extent.width     = desc.extent.width;
+    tex.extent.height    = desc.extent.height;
     tex.mipLevels        = desc.mipLevels;
     tex.arrayLayers      = desc.arrayLayers;
     tex.debugName        = desc.debugName;
@@ -66,6 +72,7 @@ TextureHandle ResourceManager::CreateTexture(const TextureDesc& desc) {
         return TextureHandle();
     }
 
+    // TODO make this a fallback path for descriptor heaps
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     viewInfo.image                           = tex.image;
@@ -102,6 +109,44 @@ void ResourceManager::DestroyTexture(TextureHandle handle) {
     }
 
     _textures.Free(handle);
+}
+
+SamplerHandle ResourceManager::CreateSampler(const SamplerDesc& desc) {
+    VkSamplerCreateInfo createInfo = desc.ToVkCreateInfo();
+
+    VkSampler sampler = VK_NULL_HANDLE;
+    if (vkCreateSampler(Vulkan::g_Device->Logical(), &createInfo, nullptr, &sampler) != VK_SUCCESS) {
+        LIGHTVK_ERROR("Failed to create sampler '{}'", desc.debugName);
+        return SamplerHandle();
+    }
+
+    if (SamplerHeap == nullptr) {
+        LIGHTVK_ERROR("Cannot create sampler '{}': sampler heap is not initialized", desc.debugName);
+        vkDestroySampler(Vulkan::g_Device->Logical(), sampler, nullptr);
+        return SamplerHandle();
+    }
+
+    Sampler resource{};
+    resource.sampler         = sampler;
+    resource.descriptorIndex = SamplerHeap->AllocateSampler(createInfo);
+    resource.debugName       = desc.debugName;
+
+    LIGHTVK_INFO("Created Sampler '{}'", desc.debugName);
+    return _samplers.Allocate(resource);
+}
+
+void ResourceManager::DestroySampler(SamplerHandle handle) {
+    if (!handle.IsValid())
+        return;
+
+    Sampler* sampler = _samplers.Get(handle);
+    if (!sampler)
+        return;
+
+    if (sampler->sampler != VK_NULL_HANDLE)
+        vkDestroySampler(Vulkan::g_Device->Logical(), sampler->sampler, nullptr);
+
+    _samplers.Free(handle);
 }
 
 BufferHandle ResourceManager::CreateBuffer(const BufferDesc& desc) {

@@ -37,6 +37,7 @@ layout(std140, descriptor_heap) uniform UBO {
 uniformHeaps[];
 
 layout(location = 0) out vec3 fragColor;
+layout(location = 1) out vec2 fragUV;
 
 void main() {
     uint vertexIdx = indexHeaps[pushData.indexBufferIndex].indices[gl_VertexIndex];
