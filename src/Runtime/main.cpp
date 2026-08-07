@@ -12,6 +12,12 @@ public:
             LIGHTVK_ERROR("Failed to load scene.bin");
         }
 
+        auto modelView = _world->Registry().view<Lgt::Component::ModelInstance>();
+        for (const auto entity : modelView) {
+            const auto& instance = modelView.get<Lgt::Component::ModelInstance>(entity);
+            _assets->LoadModel(instance.model);
+        }
+
         _player_system.Init(_world.get());
     }
 

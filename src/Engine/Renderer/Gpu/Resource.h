@@ -219,7 +219,7 @@ public:
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        if (!(index < _resources.size() && _generations[index] == gen)) {
+        if (!(index < _resources.size() && _alive[index] && _generations[index] == gen)) {
             LIGHTVK_WARN("stale or foreign handle detected");
             return nullptr;
         }
@@ -229,7 +229,7 @@ public:
 
     template <typename Fn> void ForEach(Fn&& fn) {
         for (size_t i = 1; i < _resources.size(); ++i) {
-            if (_generations[i] != 0) {
+            if (_alive[i]) {
                 fn(_resources[i]);
             }
         }
@@ -255,11 +255,11 @@ public:
         if (!handle.IsValid())
             return false;
 
-        uint64_t raw   = handle.id;
+        uint64_t raw   = handle.value;
         auto     index = static_cast<ValueType>(raw & 0xFFFFFFFF);
         auto     gen   = static_cast<ValueType>(raw >> 32);
 
-        return index < _resources.size() && _generations[index] == gen;
+        return index < _resources.size() && _alive[index] && _generations[index] == gen;
     }
 
     void Clear() {

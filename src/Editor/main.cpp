@@ -12,8 +12,8 @@ public:
         EnableUi();
         editor.Init(_world.get());
 
-        // Load test mesh
-        LoadMesh("D:/DEV/cpp/LightVK/Assets/Sphere/cube.gltf");
+        // Import and instantiate the test model through the asset pipeline.
+        LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/cube.gltf");
 
         // Create editor camera
         auto cam = _world->CreateEntity("EditorCamera");

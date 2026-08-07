@@ -7,6 +7,7 @@
 #include "Engine/Scene/World.h"
 #include "Engine/Core/InputManager.h"
 #include "Engine/Renderer/Gpu/Renderer.h"
+#include "Engine/Assets/AssetManager.h"
 
 struct GLFWwindow;
 
@@ -39,14 +40,14 @@ protected:
     /// Runtime apps should NOT call this — zero ImGui overhead.
     void EnableUi() { uiEnabled_ = true; }
 
-    /// Load a mesh from disk. Returns a handle for future reference.
-    /// Wraps all GPU internals (SSBO creation, upload, descriptor allocation).
-    Gpu::DrawList LoadMesh(const std::filesystem::path& path);
+    /// Import, upload, and instantiate a model in the current world.
+    Assets::AssetGuid LoadModel(const std::filesystem::path& path);
 
     GLFWwindow*                   _window = nullptr;
     std::unique_ptr<World>        _world;
     std::unique_ptr<InputManager> _input;
     std::unique_ptr<Timer>        _timer;
+    std::unique_ptr<Assets::AssetManager> _assets;
 
 private:
     void BeginUi();
@@ -54,7 +55,6 @@ private:
     void RenderScene();
     
     std::unique_ptr<ImGuiLayer>  _imguiLayer;
-    std::vector<Gpu::DrawList>   _meshes;
     bool                         uiEnabled_ = false;
 };
 

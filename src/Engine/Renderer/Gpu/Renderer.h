@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <vector>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 
@@ -14,14 +15,19 @@ struct DrawCommand {
     uint32_t  frameIndex        = 0;
     uint32_t  vertexBufferIndex = 0;
     uint32_t  indexBufferIndex  = 0;
+    uint32_t  indexOffset       = 0;
     uint32_t  materialIndex     = 0;
+    uint32_t  materialBufferIndex = 0;
+    uint32_t  pushConstantPadding[2] = {};
     glm::mat4 transform         = glm::mat4(1.0f);
 };
 
 struct DrawList {
-    DrawCommand* commands    = nullptr;
-    uint32_t*    indexCounts = nullptr;
-    uint32_t     count       = 0;
+    std::vector<DrawCommand> commands;
+    std::vector<uint32_t> indexCounts;
+
+    bool empty() const { return commands.empty(); }
+    size_t size() const { return commands.size(); }
 };
 
 struct FrameUBO {
@@ -46,7 +52,7 @@ class RendererClass {
 public:
     void Init(GLFWwindow* window);
     void ShutDown();
-    void Render(DrawList* list, const glm::mat4& viewProj);
+    void Render(const DrawList& list, const glm::mat4& viewProj);
     void BeginRendering(VkCommandBuffer cmd, bool clearColor = true);
     void EndRendering(VkCommandBuffer cmd);
     bool BeginFrame(uint32_t frameIndex);

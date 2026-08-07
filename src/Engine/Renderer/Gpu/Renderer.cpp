@@ -162,7 +162,7 @@ void RendererClass::recreateSwapchain() {
     }
 }
 
-void RendererClass::Render(DrawList* list, const glm::mat4& viewProj) {
+void RendererClass::Render(const DrawList& list, const glm::mat4& viewProj) {
 
     // Upload camera view-projection matrix to per-frame UBO
     auto* ubo = Resources->GetBuffer(_frameUBO[_currentFrame]);
@@ -198,13 +198,14 @@ void RendererClass::Render(DrawList* list, const glm::mat4& viewProj) {
     BeginRendering(cmd, true);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TraingleGfxPipeline_);
 
-    for (int i = 0; i < list->count; ++i) {
+    for (size_t i = 0; i < list.commands.size(); ++i) {
 
-        list->commands[i].frameIndex = _currentFrame;
+        auto command = list.commands[i];
+        command.frameIndex = _currentFrame;
 
         VkHostAddressRangeConstEXT cpuPushDataInfo{};
         cpuPushDataInfo.size    = sizeof(DrawCommand);
-        cpuPushDataInfo.address = &list->commands[i];
+        cpuPushDataInfo.address = &command;
 
         VkPushDataInfoEXT pushDataInfo{};
         pushDataInfo.sType  = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT;
@@ -212,7 +213,7 @@ void RendererClass::Render(DrawList* list, const glm::mat4& viewProj) {
         pushDataInfo.data   = cpuPushDataInfo;
 
         vkCmdPushDataEXT(cmd, &pushDataInfo);
-        vkCmdDraw(cmd, list->indexCounts[i], 1, 0, 0);
+        vkCmdDraw(cmd, list.indexCounts[i], 1, 0, 0);
     }
     EndRendering(cmd);
 }
@@ -241,7 +242,7 @@ bool RendererClass::BeginFrame(uint32_t frameindex) {
     // resource heap bind info
     VkDeviceAddressRangeEXT resourceDeviceAdderRange{};
     resourceDeviceAdderRange.size    = ResourceHeap->GetSize();
-    resourceDeviceAdderRange.address = ResourceHeap->BufferAddress();
+    resourceDeviceAdderRange.address = ResourceHeap->GetBufferAddress();
 
     VkBindHeapInfoEXT resourceBind{};
     resourceBind.sType               = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;
@@ -252,7 +253,7 @@ bool RendererClass::BeginFrame(uint32_t frameindex) {
     // smapler heap bind info
     VkDeviceAddressRangeEXT samplerDeviceAdderRange{};
     samplerDeviceAdderRange.size    = SamplerHeap->GetSize();
-    samplerDeviceAdderRange.address = SamplerHeap->BufferAddress();
+    samplerDeviceAdderRange.address = SamplerHeap->GetBufferAddress();
 
     VkBindHeapInfoEXT samplerBind{};
     samplerBind.sType               = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT;

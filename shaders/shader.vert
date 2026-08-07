@@ -13,7 +13,9 @@ layout(push_constant) uniform PushData {
     uint frameIndex;
     uint vertexBufferIndex;
     uint indexBufferIndex;
+    uint indexOffset;
     uint materialIndex;
+    uint materialBufferIndex;
     mat4 transform;
 }
 pushData;
@@ -40,7 +42,7 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragUV;
 
 void main() {
-    uint vertexIdx = indexHeaps[pushData.indexBufferIndex].indices[gl_VertexIndex];
+    uint vertexIdx = indexHeaps[pushData.indexBufferIndex].indices[pushData.indexOffset + gl_VertexIndex];
 
     vec3 pos    = vertexHeaps[pushData.vertexBufferIndex].vertices[nonuniformEXT(vertexIdx)].position;
     

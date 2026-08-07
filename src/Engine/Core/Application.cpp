@@ -9,12 +9,8 @@
 #include "Engine/Renderer/Vulkan/Helpers.h"
 #include "Engine/Renderer/Vulkan/Context.h"
 #include "Engine/Renderer/Gpu/Context.h"
-#include "Engine/Renderer/Gpu/Resource.h"
 #include "Engine/UI/ImGuiLayer.h"
 #include "Engine/Core/Math.h"
-
-// Asset loading (will be moved to Engine later)
-#include "Engine/Assets/Assets.h"
 
 namespace Lgt {
 
@@ -33,6 +29,8 @@ void Application::Init() {
     _timer = std::make_unique<Timer>();
     _world = std::make_unique<World>();
     _input = std::make_unique<InputManager>(_window);
+    _assets = std::make_unique<Assets::AssetManager>();
+    _assets->Init();
 
     // ImGui is always initialized (it lives in the engine),
     // but the UI pass is only executed if EnableUi() was called.
@@ -94,8 +92,9 @@ void Application::Run() {
 
 void Application::Shutdown() {
     OnShutdown();
-    _imguiLayer->Shutdown();
+    _assets->Shutdown();
     Gpu::Shutdown();
+    _imguiLayer->Shutdown();
     Vulkan::Shutdown();
 }
 
@@ -140,46 +139,41 @@ void Application::RenderScene() {
         break; // Use first active camera
     }
 
-    // Render all loaded meshes
-    for (auto& mesh : _meshes) {
-        Gpu::Renderer->Render(&mesh, viewProj);
+    Gpu::DrawList sceneDrawList;
+    auto modelView = _world->Registry().view<Component::ModelInstance, Component::WorldTransform>();
+    for (const auto entity : modelView) {
+        const auto& instance = modelView.get<Component::ModelInstance>(entity);
+        if (!instance.visible)
+            continue;
+
+        const auto* gpuModel = _assets->GetGpuModel(instance.model);
+        if (gpuModel == nullptr)
+            continue;
+
+        const auto& worldTransform = modelView.get<Component::WorldTransform>(entity).matrix;
+        const size_t firstCommand = sceneDrawList.commands.size();
+        sceneDrawList.commands.insert(sceneDrawList.commands.end(),
+                                      gpuModel->drawList.commands.begin(),
+                                      gpuModel->drawList.commands.end());
+        sceneDrawList.indexCounts.insert(sceneDrawList.indexCounts.end(),
+                                         gpuModel->drawList.indexCounts.begin(),
+                                         gpuModel->drawList.indexCounts.end());
+        for (size_t i = firstCommand; i < sceneDrawList.commands.size(); ++i)
+            sceneDrawList.commands[i].transform = worldTransform * sceneDrawList.commands[i].transform;
     }
+
+    if (!sceneDrawList.empty())
+        Gpu::Renderer->Render(sceneDrawList, viewProj);
 }
 
-Gpu::DrawList Application::LoadMesh(const std::filesystem::path& path) {
-    Assets::Model model;
-    Assets::LoadGltf(path, &model);
+Assets::AssetGuid Application::LoadModel(const std::filesystem::path& path) {
+    const auto id = _assets->LoadModel(path);
+    if (!id.IsValid())
+        return id;
 
-    Gpu::DrawCommand* commands    = new Gpu::DrawCommand[model.meshes.size()];
-    uint32_t*         indexCounts = new uint32_t[model.meshes.size()];
-
-    for (unsigned int i = 0; i < model.meshes.size(); ++i) {
-        auto vbo = Gpu::Resources->CreateBuffer(Gpu::BufferDesc::SSBO(model.meshes[i].vertices.size() * sizeof(Gpu::Vertex)));
-        auto ibo = Gpu::Resources->CreateBuffer(Gpu::BufferDesc::SSBO(model.meshes[i].indices.size() * sizeof(uint32_t)));
-
-        Vulkan::g_Uploader->UploadBuffer(Gpu::Resources->GetBuffer(vbo)->buffer,
-                                         model.meshes[i].vertices.data(),
-                                         model.meshes[i].vertices.size() * sizeof(Gpu::Vertex));
-
-        Vulkan::g_Uploader->UploadBuffer(Gpu::Resources->GetBuffer(ibo)->buffer,
-                                         model.meshes[i].indices.data(),
-                                         model.meshes[i].indices.size() * sizeof(uint32_t));
-
-        commands[i].vertexBufferIndex = Gpu::ResourceHeap->AllocateSSBO(vbo);
-        commands[i].indexBufferIndex  = Gpu::ResourceHeap->AllocateSSBO(ibo);
-        indexCounts[i]                = model.meshes[i].indices.size();
-    }
-
-    Gpu::DrawList drawList{};
-    drawList.commands    = commands;
-    drawList.count       = model.meshes.size();
-    drawList.indexCounts = indexCounts;
-    Vulkan::g_Uploader->Flush();
-
-    // Store internally for RenderScene()
-    _meshes.push_back(drawList);
-
-    return drawList;
+    auto entity = _world->CreateEntity(path.stem().string());
+    entity.Add<Component::ModelInstance>().model = id;
+    return id;
 }
 
 Application::Application()  = default;

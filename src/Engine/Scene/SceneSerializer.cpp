@@ -48,6 +48,50 @@ template <typename T> static void DeserializeComponentArray(std::ifstream& in, e
     }
 }
 
+static void SerializeHierarchy(std::ofstream& out, entt::registry& reg) {
+    auto view = reg.view<Component::Hierarchy>();
+    const uint32_t count = static_cast<uint32_t>(view.size());
+    out.write(reinterpret_cast<const char*>(&count), sizeof(count));
+
+    for (auto entity : view) {
+        const auto& hierarchy = view.get<Component::Hierarchy>(entity);
+        const entt::entity parent = hierarchy.parent.Handle();
+        out.write(reinterpret_cast<const char*>(&entity), sizeof(entity));
+        out.write(reinterpret_cast<const char*>(&parent), sizeof(parent));
+    }
+}
+
+static bool DeserializeHierarchy(std::ifstream& in, entt::registry& reg, World* world) {
+    uint32_t count = 0;
+    in.read(reinterpret_cast<char*>(&count), sizeof(count));
+    if (!in)
+        return false;
+
+    std::vector<std::pair<entt::entity, entt::entity>> parents;
+    parents.reserve(count);
+
+    for (uint32_t i = 0; i < count; ++i) {
+        entt::entity entity = entt::null;
+        entt::entity parent = entt::null;
+        in.read(reinterpret_cast<char*>(&entity), sizeof(entity));
+        in.read(reinterpret_cast<char*>(&parent), sizeof(parent));
+        if (!in)
+            return false;
+
+        if (!reg.valid(entity))
+            (void)reg.create(entity);
+        reg.emplace_or_replace<Component::Hierarchy>(entity);
+        parents.emplace_back(entity, parent);
+    }
+
+    for (const auto& [entity, parent] : parents) {
+        if (parent == entt::null || !reg.valid(parent))
+            continue;
+        world->Graph().SetParent(Entity(parent, world), Entity(entity, world));
+    }
+    return true;
+}
+
 bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath) {
     std::ofstream out(filepath, std::ios::binary);
     if (!out.is_open()) {
@@ -73,11 +117,11 @@ bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath) {
     // Serialize POD Components
     SerializeComponentArray<Component::WorldTransform>(out, reg);
     SerializeComponentArray<Component::LocalTransform>(out, reg);
-    SerializeComponentArray<Component::Hierarchy>(out, reg);
+    SerializeHierarchy(out, reg);
     SerializeComponentArray<Component::Material>(out, reg);
     SerializeComponentArray<Component::DirectionalLight>(out, reg);
     SerializeComponentArray<Component::PointLight>(out, reg);
-    SerializeComponentArray<Component::Mesh>(out, reg);
+    SerializeComponentArray<Component::ModelInstance>(out, reg);
     SerializeComponentArray<Component::Camera>(out, reg);
 
     out.close();
@@ -114,11 +158,12 @@ bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath) {
     // Deserialize POD Components
     DeserializeComponentArray<Component::WorldTransform>(in, reg);
     DeserializeComponentArray<Component::LocalTransform>(in, reg);
-    DeserializeComponentArray<Component::Hierarchy>(in, reg);
+    if (!DeserializeHierarchy(in, reg, m_World))
+        return false;
     DeserializeComponentArray<Component::Material>(in, reg);
     DeserializeComponentArray<Component::DirectionalLight>(in, reg);
     DeserializeComponentArray<Component::PointLight>(in, reg);
-    DeserializeComponentArray<Component::Mesh>(in, reg);
+    DeserializeComponentArray<Component::ModelInstance>(in, reg);
     DeserializeComponentArray<Component::Camera>(in, reg);
 
     in.close();

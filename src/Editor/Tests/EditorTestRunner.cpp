@@ -64,11 +64,10 @@ void EditorTestRunner::RegisterBuiltInTests() {
         "Bright Red Texture",
         "Creates a 1x1 RGBA8 image, uploads a red texel, builds its image view descriptor, and creates a sampler.",
         [textureState] {
-            Assets::Texture textureData;
-            textureData.width    = 1;
-            textureData.height   = 1;
-            textureData.channels = 4;
-            textureData.pixels   = {255, 0, 0, 255};
+            Assets::TextureAsset textureData;
+            textureData.width  = 1;
+            textureData.height = 1;
+            textureData.data   = {255, 0, 0, 255};
 
             textureState->texture = Gpu::Resources->CreateTexture(Gpu::TextureDesc::Texture2D(
                 {textureData.width, textureData.height}, VK_FORMAT_R8G8B8A8_UNORM, "BrightRedTexture"));
@@ -77,8 +76,8 @@ void EditorTestRunner::RegisterBuiltInTests() {
                 return TestResult::Fail("ResourceManager returned an invalid texture");
 
             Vulkan::g_Uploader->uploadTexture(gpuTexture->image,
-                                              textureData.pixels.data(),
-                                              static_cast<uint32_t>(textureData.pixels.size()),
+                                              textureData.data.data(),
+                                              static_cast<uint32_t>(textureData.data.size()),
                                               Vulkan::TextureCopy::FullTexture(textureData.width, textureData.height));
 
             VkImageViewCreateInfo imageViewInfo{};

@@ -115,13 +115,13 @@ void InspectorPanel::DrawComponents(Entity entity) {
         if (removed) entity.Remove<Component::Material>();
     }
     
-    if (entity.Has<Component::Mesh>()) {
+    if (entity.Has<Component::ModelInstance>()) {
         bool removed = false;
-        if (Widgets::DrawComponentCardBegin("Mesh", isExpanded, isEnabled, true, &removed)) {
-            inspectors.at(entt::type_id<Component::Mesh>().hash()).drawCallback(entity, &entity.Get<Component::Mesh>());
+        if (Widgets::DrawComponentCardBegin("Model Instance", isExpanded, isEnabled, true, &removed)) {
+            inspectors.at(entt::type_id<Component::ModelInstance>().hash()).drawCallback(entity, &entity.Get<Component::ModelInstance>());
         }
         Widgets::DrawComponentCardEnd();
-        if (removed) entity.Remove<Component::Mesh>();
+        if (removed) entity.Remove<Component::ModelInstance>();
     }
     
     if (entity.Has<Component::DirectionalLight>()) {
@@ -154,7 +154,7 @@ void InspectorPanel::DrawAddComponentMenu(Entity entity) {
         // Manual checks for now
         if (!entity.Has<Component::Camera>() && ImGui::MenuItem("Camera")) entity.Add<Component::Camera>();
         if (!entity.Has<Component::Material>() && ImGui::MenuItem("Material")) entity.Add<Component::Material>();
-        if (!entity.Has<Component::Mesh>() && ImGui::MenuItem("Mesh")) entity.Add<Component::Mesh>();
+        if (!entity.Has<Component::ModelInstance>() && ImGui::MenuItem("Model Instance")) entity.Add<Component::ModelInstance>();
         if (!entity.Has<Component::DirectionalLight>() && ImGui::MenuItem("Directional Light")) entity.Add<Component::DirectionalLight>();
         if (!entity.Has<Component::PointLight>() && ImGui::MenuItem("Point Light")) entity.Add<Component::PointLight>();
 
@@ -216,10 +216,18 @@ void DrawPointLightInspector(Lgt::Entity entity, void* data) {
 }
 REGISTER_INSPECTOR(Lgt::Component::PointLight, DrawPointLightInspector);
 
-void DrawMeshInspector(Lgt::Entity entity, void* data) {
-    auto& mesh = *static_cast<Lgt::Component::Mesh*>(data);
-    ImGui::Text("Vertex Buffer Index: %d", mesh.vertexBufferIndex);
-    ImGui::Text("Index Buffer Index: %d", mesh.indexBufferIndex);
-    ImGui::Text("Material Index: %d", mesh.materialIndex);
+void DrawModelInstanceInspector(Lgt::Entity entity, void* data) {
+    auto& model = *static_cast<Lgt::Component::ModelInstance*>(data);
+    ImGui::Text("Asset: %016llx:%016llx",
+                static_cast<unsigned long long>(model.model.high),
+                static_cast<unsigned long long>(model.model.low));
+    ImGui::Checkbox("Visible", &model.visible);
+    ImGui::Checkbox("Cast Shadow", &model.castShadow);
+    ImGui::Checkbox("Receive Shadow", &model.receiveShadow);
+
+    const char* mobilityNames[] = {"Static", "Movable", "Skinned"};
+    int mobility = static_cast<int>(model.mobility);
+    if (ImGui::Combo("Mobility", &mobility, mobilityNames, 3))
+        model.mobility = static_cast<Lgt::Assets::Mobility>(mobility);
 }
-REGISTER_INSPECTOR(Lgt::Component::Mesh, DrawMeshInspector);
+REGISTER_INSPECTOR(Lgt::Component::ModelInstance, DrawModelInstanceInspector);

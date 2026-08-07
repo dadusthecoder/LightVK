@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "Engine/Scene/Entity.h"
+#include "Engine/Assets/AssetTypes.h"
 
 #include <glm/glm.hpp>
 
@@ -60,10 +61,12 @@ struct PointLight {
     float     radius    = 10.f;
 };
 
-struct Mesh {
-    uint32_t vertexBufferIndex = 0;
-    uint32_t indexBufferIndex  = 0;
-    uint32_t materialIndex     = 0;
+struct ModelInstance {
+    Lgt::Assets::AssetGuid model{};
+    Lgt::Assets::Mobility mobility = Lgt::Assets::Mobility::Static;
+    bool visible = true;
+    bool castShadow = true;
+    bool receiveShadow = true;
 };
 
 struct Camera {

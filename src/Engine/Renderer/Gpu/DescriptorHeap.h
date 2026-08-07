@@ -8,16 +8,15 @@ public:
     DescriptorHeap(size_t size, bool isResorceHeap = true, bool isSamplerHeap = false);
     ~DescriptorHeap();
 
-    VkDeviceAddress BufferAddress() { return m_DeviceAddress; }
-
     uint32_t AllocateSSBO(const BufferHandle& buffer);
     uint32_t AllocateUBO(const BufferHandle& buffer);
     uint32_t AllocateTexture(const TextureHandle& handle, const VkImageViewCreateInfo& view, VkImageLayout layout);
-
-    size_t   GetSize() { return _total_size; }
     uint32_t AllocateSampler(const VkSamplerCreateInfo& samplerInfo);
-    size_t   GerReservedRangeOffset() { return _reserved_range_offset; }
-    size_t   GetReservedRangeSize() { return _reserved_range_size; }
+
+    size_t          GetSize() { return _total_size; }
+    VkDeviceAddress GetBufferAddress() { return m_DeviceAddress; }
+    size_t          GerReservedRangeOffset() { return _reserved_range_offset; }
+    size_t          GetReservedRangeSize() { return _reserved_range_size; }
 
 private:
     size_t _total_size  = 0;
