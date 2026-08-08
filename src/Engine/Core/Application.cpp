@@ -26,9 +26,9 @@ void Application::Init() {
     Vulkan::Init(_window);
     Gpu::Init(_window);
 
-    _timer = std::make_unique<Timer>();
-    _world = std::make_unique<World>();
-    _input = std::make_unique<InputManager>(_window);
+    _timer  = std::make_unique<Timer>();
+    _world  = std::make_unique<World>();
+    _input  = std::make_unique<InputManager>(_window);
     _assets = std::make_unique<Assets::AssetManager>();
     _assets->Init();
 
@@ -140,7 +140,7 @@ void Application::RenderScene() {
     }
 
     Gpu::DrawList sceneDrawList;
-    auto modelView = _world->Registry().view<Component::ModelInstance, Component::WorldTransform>();
+    auto          modelView = _world->Registry().view<Component::ModelInstance, Component::WorldTransform>();
     for (const auto entity : modelView) {
         const auto& instance = modelView.get<Component::ModelInstance>(entity);
         if (!instance.visible)
@@ -150,14 +150,12 @@ void Application::RenderScene() {
         if (gpuModel == nullptr)
             continue;
 
-        const auto& worldTransform = modelView.get<Component::WorldTransform>(entity).matrix;
-        const size_t firstCommand = sceneDrawList.commands.size();
-        sceneDrawList.commands.insert(sceneDrawList.commands.end(),
-                                      gpuModel->drawList.commands.begin(),
-                                      gpuModel->drawList.commands.end());
-        sceneDrawList.indexCounts.insert(sceneDrawList.indexCounts.end(),
-                                         gpuModel->drawList.indexCounts.begin(),
-                                         gpuModel->drawList.indexCounts.end());
+        const auto&  worldTransform = modelView.get<Component::WorldTransform>(entity).matrix;
+        const size_t firstCommand   = sceneDrawList.commands.size();
+        sceneDrawList.commands.insert(
+            sceneDrawList.commands.end(), gpuModel->drawList.commands.begin(), gpuModel->drawList.commands.end());
+        sceneDrawList.indexCounts.insert(
+            sceneDrawList.indexCounts.end(), gpuModel->drawList.indexCounts.begin(), gpuModel->drawList.indexCounts.end());
         for (size_t i = firstCommand; i < sceneDrawList.commands.size(); ++i)
             sceneDrawList.commands[i].transform = worldTransform * sceneDrawList.commands[i].transform;
     }
@@ -171,7 +169,7 @@ Assets::AssetGuid Application::LoadModel(const std::filesystem::path& path) {
     if (!id.IsValid())
         return id;
 
-    auto entity = _world->CreateEntity(path.stem().string());
+    auto entity                                  = _world->CreateEntity(path.stem().string());
     entity.Add<Component::ModelInstance>().model = id;
     return id;
 }

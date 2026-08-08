@@ -125,7 +125,7 @@ struct TextureSlot {
     AssetRef sampler{};
     uint32_t uvSet = 0;
     float strength = 1.0f;
-
+    
     bool IsValid() const { return texture.IsValid(); }
 };
 

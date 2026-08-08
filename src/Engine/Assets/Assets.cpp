@@ -462,7 +462,7 @@ ImportResult ImportGltf(const std::filesystem::path& path, const ImportOptions&)
                 result.model.nodes[childIndex].parentIndex = static_cast<uint32_t>(parentIndex);
         }
     }
-
+ 
     result.success = true;
     LIGHTVK_INFO("GltfImporter: '{}' -> {} nodes, {} meshes, {} materials, {} textures, {} samplers",
                  path.filename().string(),

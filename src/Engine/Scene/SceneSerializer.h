@@ -13,6 +13,9 @@ public:
     bool SerializeBinary(const std::filesystem::path& filepath);
     bool DeserializeBinary(const std::filesystem::path& filepath);
 
+    // Resolves relative scene names from the launch directory or the project Assets directory.
+    static std::filesystem::path ResolveScenePath(const std::filesystem::path& filepath);
+
 private:
     World* m_World;
 };

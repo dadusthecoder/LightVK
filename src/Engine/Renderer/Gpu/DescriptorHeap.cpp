@@ -10,6 +10,8 @@ DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHe
 
     VkBufferCreateInfo bufferci{};
 
+    bufferci.usage = VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
     if (isResorceHeap) {
         bufferci.usage       |= VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
         _reserved_range_size  = Vulkan::g_Device->DescriptorHeapProperties().minResourceHeapReservedRange;
@@ -24,7 +26,6 @@ DescriptorHeap::DescriptorHeap(size_t size, bool isResorceHeap, bool isSamplerHe
 
     bufferci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferci.size  = _total_size;
-    bufferci.usage = VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
     vkCreateBuffer(Lgt::Vulkan::g_Device->Logical(), &bufferci, nullptr, &m_Buffer);
 

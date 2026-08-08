@@ -2,9 +2,6 @@
 #extension GL_EXT_descriptor_heap : require
 #extension GL_EXT_nonuniform_qualifier : require
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragUV;
-
 layout(location = 0) out vec4 outColor;
 layout(descriptor_heap) uniform texture2D textures_heap[];
 layout(descriptor_heap) uniform sampler samplers_heap[];
@@ -34,6 +31,7 @@ struct Material {
     uint occlusionSampler;
     uint emissiveTexture;
     uint emissiveSampler;
+    uint padding[2];
 };
 
 layout(std430, descriptor_heap) buffer MaterialBuffer {
@@ -41,12 +39,16 @@ layout(std430, descriptor_heap) buffer MaterialBuffer {
 }
 materialHeaps[];
 
+layout(location = 0) in vec2 fragUV;
+
 void main() {
     Material material = materialHeaps[pushData.materialBufferIndex].materials[pushData.materialIndex];
+
     vec4 texColor = material.baseColorFactor;
     if (material.baseColorTexture != 0xFFFFFFFFu && material.baseColorSampler != 0xFFFFFFFFu) {
         texColor *= texture(sampler2D(textures_heap[nonuniformEXT(material.baseColorTexture)],
-                                       samplers_heap[nonuniformEXT(material.baseColorSampler)]), fragUV);
+                                       samplers_heap[nonuniformEXT(material.baseColorSampler)]),
+                            fragUV);
     }
 
     outColor = vec4(texColor.rgb + material.emissiveFactor.rgb * material.emissiveFactor.a, texColor.a);

@@ -71,7 +71,10 @@ struct MaterialGpuData {
     uint32_t occlusionSampler = 0xFFFFFFFFu;
     uint32_t emissiveTexture = 0xFFFFFFFFu;
     uint32_t emissiveSampler = 0xFFFFFFFFu;
+    uint32_t padding[2]{};
 };
+
+static_assert(sizeof(MaterialGpuData) == 96, "MaterialGpuData must match the GLSL std430 array stride");
 
 uint32_t FindTextureDescriptor(const TextureSlot& slot,
                                const std::unordered_map<AssetGuid, uint32_t, AssetGuidHash>& descriptors) {

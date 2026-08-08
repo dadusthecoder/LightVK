@@ -5,11 +5,47 @@
 
 #include <fstream>
 #include <vector>
+#include <system_error>
 
 namespace Lgt {
 
 SceneSerializer::SceneSerializer(World* world)
     : m_World(world) {}
+
+std::filesystem::path SceneSerializer::ResolveScenePath(const std::filesystem::path& filepath) {
+    if (filepath.is_absolute())
+        return filepath;
+
+    std::error_code error;
+    auto current = std::filesystem::current_path(error);
+    if (error)
+        return filepath;
+
+    std::filesystem::path projectRoot;
+    for (auto directory = current;; directory = directory.parent_path()) {
+        const auto directPath = directory / filepath;
+        if (std::filesystem::is_regular_file(directPath, error))
+            return directPath;
+
+        const auto assetsPath = directory / "Assets" / filepath;
+        if (std::filesystem::is_regular_file(assetsPath, error))
+            return assetsPath;
+
+        if (std::filesystem::is_regular_file(directory / "CMakeLists.txt", error) &&
+            std::filesystem::is_directory(directory / "src", error) &&
+            std::filesystem::is_directory(directory / "Assets", error)) {
+            projectRoot = directory;
+        }
+
+        const auto parent = directory.parent_path();
+        if (parent == directory)
+            break;
+    }
+
+    if (!projectRoot.empty())
+        return projectRoot / "Assets" / filepath;
+    return filepath;
+}
 
 template <typename T> static void SerializeComponentArray(std::ofstream& out, entt::registry& reg) {
     auto     view  = reg.view<T>();
@@ -93,9 +129,13 @@ static bool DeserializeHierarchy(std::ifstream& in, entt::registry& reg, World* 
 }
 
 bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath) {
-    std::ofstream out(filepath, std::ios::binary);
+    const auto resolvedPath = ResolveScenePath(filepath);
+    std::error_code error;
+    std::filesystem::create_directories(resolvedPath.parent_path(), error);
+
+    std::ofstream out(resolvedPath, std::ios::binary);
     if (!out.is_open()) {
-        LIGHTVK_ERROR("Failed to open file for writing: {}", filepath.string());
+        LIGHTVK_ERROR("Failed to open file for writing: {}", resolvedPath.string());
         return false;
     }
 
@@ -129,9 +169,10 @@ bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath) {
 }
 
 bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath) {
-    std::ifstream in(filepath, std::ios::binary);
+    const auto resolvedPath = ResolveScenePath(filepath);
+    std::ifstream in(resolvedPath, std::ios::binary);
     if (!in.is_open()) {
-        LIGHTVK_ERROR("Failed to open file for reading: {}", filepath.string());
+        LIGHTVK_ERROR("Failed to open file for reading: {}", resolvedPath.string());
         return false;
     }
 

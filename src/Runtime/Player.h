@@ -6,7 +6,7 @@ namespace Components {
 struct Player {
     std::string name;
     uint64_t    health;
-    bool        isAlive;
+    bool        isAlive; 
 };
 } // namespace  Components
 

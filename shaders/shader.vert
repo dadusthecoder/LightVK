@@ -38,36 +38,25 @@ layout(std140, descriptor_heap) uniform UBO {
 }
 uniformHeaps[];
 
-layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec2 fragUV;
+layout(location = 0) out vec2 fragUV;
 
 void main() {
     uint vertexIdx = indexHeaps[pushData.indexBufferIndex].indices[pushData.indexOffset + gl_VertexIndex];
 
-    vec3 pos    = vertexHeaps[pushData.vertexBufferIndex].vertices[nonuniformEXT(vertexIdx)].position;
-    
+    Vertex vertex = vertexHeaps[pushData.vertexBufferIndex].vertices[nonuniformEXT(vertexIdx)];
+
+    fragUV = vertex.uv;
+
     // Transform normal into world space (assuming uniform scale for simplicity)
-    vec3 normal = mat3(pushData.transform) * vertexHeaps[pushData.vertexBufferIndex].vertices[nonuniformEXT(vertexIdx)].normal;
-    normal = normalize(normal);
+    vec3 normal = mat3(pushData.transform) * vertex.normal;
+    normal      = normalize(normal);
 
     // Reconstruct the view-projection matrix column by column from the descriptor heap
     // to bypass the driver TDR bug reading mat4 directly from UBO arrays
-    mat4 viewProj = mat4(
-        uniformHeaps[pushData.frameIndex].viewProjCol0,
-        uniformHeaps[pushData.frameIndex].viewProjCol1,
-        uniformHeaps[pushData.frameIndex].viewProjCol2,
-        uniformHeaps[pushData.frameIndex].viewProjCol3
-    );
+    mat4 viewProj = mat4(uniformHeaps[pushData.frameIndex].viewProjCol0,
+                         uniformHeaps[pushData.frameIndex].viewProjCol1,
+                         uniformHeaps[pushData.frameIndex].viewProjCol2,
+                         uniformHeaps[pushData.frameIndex].viewProjCol3);
 
-    gl_Position = viewProj * pushData.transform * vec4(pos, 1.0);
-
-    // Basic directional lighting for visual feedback
-    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
-    float ndotl   = max(dot(normal, lightDir), 0.0);
-    
-    // Add a checkerboard pattern using the object-space position
-    float checker = mod(floor(pos.x * 2.0) + floor(pos.y * 2.0) + floor(pos.z * 2.0), 2.0);
-    vec3 baseColor = mix(vec3(0.8, 0.2, 0.2), vec3(0.2, 0.2, 0.8), checker); // Red and blue checkerboard
-
-    fragColor     = baseColor * (ndotl * 0.7 + 0.3); // ambient + diffuse
+    gl_Position = viewProj * pushData.transform * vec4(vertex.position, 1.0);
 }

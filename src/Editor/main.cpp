@@ -13,7 +13,7 @@ public:
         editor.Init(_world.get());
 
         // Import and instantiate the test model through the asset pipeline.
-        LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/cube.gltf");
+        LoadModel("D:/DEV/cpp/LightVK/Assets/sponza/Sponza.gltf");
 
         // Create editor camera
         auto cam = _world->CreateEntity("EditorCamera");
@@ -82,6 +82,7 @@ public:
     }
 
     void OnShutdown() override {
+        Lgt::SceneSerializer(_world.get()).SerializeBinary("scene.bin");
         editor.Shutdown();
     }
 };

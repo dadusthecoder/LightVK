@@ -32,6 +32,7 @@ public:
 
 private:
     System::Transform transform_sys;
+    
     entt::registry    m_Registry;
     SceneGraph        _graph;
 };
