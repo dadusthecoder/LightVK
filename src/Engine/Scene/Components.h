@@ -2,7 +2,7 @@
 #include <string>
 #include "Engine/Scene/Entity.h"
 #include "Engine/Assets/AssetTypes.h"
-
+#include "Engine/Physics/PhysicsComponents.h"
 #include <glm/glm.hpp>
 
 // REQUIRED extensions
@@ -63,29 +63,27 @@ struct PointLight {
 
 struct ModelInstance {
     Lgt::Assets::AssetGuid model{};
-    Lgt::Assets::Mobility mobility = Lgt::Assets::Mobility::Static;
-    bool visible = true;
-    bool castShadow = true;
-    bool receiveShadow = true;
+    Lgt::Assets::Mobility  mobility      = Lgt::Assets::Mobility::Static;
+    bool                   visible       = true;
+    bool                   castShadow    = true;
+    bool                   receiveShadow = true;
 };
 
 struct Camera {
     glm::vec3 up    = {0.f, 1.f, 0.f};
     glm::vec3 front = {0.f, 0.f, -1.f};
 
-    float fov       = 60.0f;   // degrees
+    float fov       = 60.0f; // degrees
     float nearPlane = 0.1f;
     float farPlane  = 1000.0f;
-    bool  isActive  = true;    // only the active camera is used for rendering
+    bool  isActive  = true; // only the active camera is used for rendering
 
     /// Computes the view matrix from the entity's world position.
-    glm::mat4 ViewMatrix(const glm::vec3& worldPos) const {
-        return glm::lookAt(worldPos, worldPos + front, up);
-    }
+    glm::mat4 ViewMatrix(const glm::vec3& worldPos) const { return glm::lookAt(worldPos, worldPos + front, up); }
 
     /// Computes the perspective projection matrix (Vulkan Y-flipped).
     glm::mat4 ProjectionMatrix(float aspect) const {
-        auto proj = glm::perspective(glm::radians(fov), aspect, nearPlane, farPlane);
+        auto proj   = glm::perspective(glm::radians(fov), aspect, nearPlane, farPlane);
         proj[1][1] *= -1.0f; // Vulkan clip-space Y is inverted
         return proj;
     }

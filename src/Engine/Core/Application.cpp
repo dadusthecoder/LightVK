@@ -38,9 +38,6 @@ void Application::Init() {
     _imguiLayer = std::make_unique<ImGuiLayer>();
     _imguiLayer->Init(_window, Gpu::Renderer->SwapchainFormat());
 
-    // new scene tartget for the scene other
-    Gpu::Renderer->ResizeSceneTarget({1280, 720});
-
     OnInit();
 }
 
@@ -76,8 +73,11 @@ void Application::Run() {
 
             // Scene pass — find active camera, render all loaded meshes
             {
+                if (!uiEnabled_) {
+                    Gpu::Renderer->SetRenderToSwapchain(true);
+                }
                 LGT_PROFILE_SCOPE("RenderScene");
-                RenderScene();
+                OnRender();
             }
 
             Gpu::Renderer->EndFrame();
@@ -108,60 +108,6 @@ void Application::EndUi() {
     auto uiCmd = Gpu::Renderer->GetUICommandBuffer();
     _imguiLayer->EndFrame(uiCmd);
     Gpu::Renderer->EndRendering(uiCmd);
-}
-
-void Application::RenderScene() {
-    // Find the active camera in the ECS
-    glm::mat4 viewProj = glm::mat4(1.0f); // identity fallback
-
-    auto& reg  = _world->Registry();
-    auto  view = reg.view<Component::Camera, Component::LocalTransform>();
-
-    for (auto entity : view) {
-        auto& cam       = view.get<Component::Camera>(entity);
-        auto& transform = view.get<Component::LocalTransform>(entity);
-
-        if (!cam.isActive)
-            continue;
-
-        // Use offscreen target dimensions if valid, else fallback to Swapchain (runtime)
-        uint32_t sceneW = Gpu::Renderer->GetSceneWidth();
-        uint32_t sceneH = Gpu::Renderer->GetSceneHeight();
-        if (sceneW == 0 || sceneH == 0) {
-            sceneW = WIDTH;
-            sceneH = HEIGHT;
-        }
-        float aspect = static_cast<float>(sceneW) / static_cast<float>(sceneH);
-
-        glm::mat4 viewMat = cam.ViewMatrix(transform.position);
-        glm::mat4 projMat = cam.ProjectionMatrix(aspect);
-        viewProj          = projMat * viewMat;
-        break; // Use first active camera
-    }
-
-    Gpu::DrawList sceneDrawList;
-    auto          modelView = _world->Registry().view<Component::ModelInstance, Component::WorldTransform>();
-    for (const auto entity : modelView) {
-        const auto& instance = modelView.get<Component::ModelInstance>(entity);
-        if (!instance.visible)
-            continue;
-
-        const auto* gpuModel = _assets->GetGpuModel(instance.model);
-        if (gpuModel == nullptr)
-            continue;
-
-        const auto&  worldTransform = modelView.get<Component::WorldTransform>(entity).matrix;
-        const size_t firstCommand   = sceneDrawList.commands.size();
-        sceneDrawList.commands.insert(
-            sceneDrawList.commands.end(), gpuModel->drawList.commands.begin(), gpuModel->drawList.commands.end());
-        sceneDrawList.indexCounts.insert(
-            sceneDrawList.indexCounts.end(), gpuModel->drawList.indexCounts.begin(), gpuModel->drawList.indexCounts.end());
-        for (size_t i = firstCommand; i < sceneDrawList.commands.size(); ++i)
-            sceneDrawList.commands[i].transform = worldTransform * sceneDrawList.commands[i].transform;
-    }
-
-    if (!sceneDrawList.empty())
-        Gpu::Renderer->Render(sceneDrawList, viewProj);
 }
 
 Assets::AssetGuid Application::LoadModel(const std::filesystem::path& path) {

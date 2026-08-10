@@ -24,6 +24,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fastgltf CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
 
 find_program(GLSLC glslc PATHS D:/Vulkan/Bin REQUIRED)
 

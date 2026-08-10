@@ -9,7 +9,14 @@
 namespace Lgt {
 
 World::World()
-    : transform_sys(this) {}
+    : transform_sys(this)
+    , _physics_sys(this) {
+    _physics_sys.Init();
+}
+
+World::~World() {
+    _physics_sys.Shutdown();
+}
 
 Entity World::CreateEntity(std::string name) {
     auto   handle = m_Registry.create();
@@ -28,12 +35,9 @@ void World::DestroyEntity(Entity entity) {
     m_Registry.destroy(entity.Handle());
 }
 
-void World::Update(float /*deltaTime*/) {
+void World::Update(float deltaTime) {
+    _physics_sys.Update(deltaTime);
     transform_sys.Update();
-}
-
-Gpu::DrawList World::DrawList() {
-    return Gpu::DrawList();
 }
 
 } // namespace Lgt

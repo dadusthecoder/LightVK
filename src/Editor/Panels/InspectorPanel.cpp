@@ -2,6 +2,7 @@
 #include "Editor/InspectorRegistry.h"
 #include "Editor/Widgets.h"
 #include "Engine/Scene/Components.h"
+#include "Engine/Physics/PhysicsComponents.h"
 #include "imgui.h"
 
 namespace Lgt::Editor::Panel {
@@ -141,6 +142,61 @@ void InspectorPanel::DrawComponents(Entity entity) {
         Widgets::DrawComponentCardEnd();
         if (removed) entity.Remove<Component::PointLight>();
     }
+
+    // ── Physics Components ──────────────────────────────────────────────
+    if (entity.Has<Component::RigidBody>()) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Rigid Body", isExpanded, isEnabled, true, &removed)) {
+            auto& rb = entity.Get<Component::RigidBody>();
+            const char* motionTypes[] = { "Static", "Dynamic", "Kinematic" };
+            int mt = static_cast<int>(rb.motionType);
+            if (ImGui::Combo("Motion Type", &mt, motionTypes, 3))
+                rb.motionType = static_cast<Component::MotionType>(mt);
+            ImGui::DragFloat("Mass", &rb.mass, 0.1f, 0.01f, 10000.0f);
+            ImGui::DragFloat("Friction", &rb.friction, 0.01f, 0.0f, 2.0f);
+            ImGui::DragFloat("Restitution", &rb.restitution, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Linear Damping", &rb.linearDamping, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Angular Damping", &rb.angularDamping, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Gravity Factor", &rb.gravityFactor, 0.01f, 0.0f, 10.0f);
+            if (rb._registered)
+                ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "Registered (BodyID: %u)", rb.bodyId);
+            else
+                ImGui::TextDisabled("Not yet registered");
+        }
+        Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::RigidBody>();
+    }
+
+    if (entity.Has<Component::BoxCollider>()) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Box Collider", isExpanded, isEnabled, true, &removed)) {
+            auto& col = entity.Get<Component::BoxCollider>();
+            Widgets::DrawVec3Control("Half Extents", col.halfExtents, 0.5f);
+        }
+        Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::BoxCollider>();
+    }
+
+    if (entity.Has<Component::SphereCollider>()) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Sphere Collider", isExpanded, isEnabled, true, &removed)) {
+            auto& col = entity.Get<Component::SphereCollider>();
+            ImGui::DragFloat("Radius", &col.radius, 0.01f, 0.01f, 100.0f);
+        }
+        Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::SphereCollider>();
+    }
+
+    if (entity.Has<Component::CapsuleCollider>()) {
+        bool removed = false;
+        if (Widgets::DrawComponentCardBegin("Capsule Collider", isExpanded, isEnabled, true, &removed)) {
+            auto& col = entity.Get<Component::CapsuleCollider>();
+            ImGui::DragFloat("Half Height", &col.halfHeight, 0.01f, 0.01f, 100.0f);
+            ImGui::DragFloat("Radius", &col.radius, 0.01f, 0.01f, 100.0f);
+        }
+        Widgets::DrawComponentCardEnd();
+        if (removed) entity.Remove<Component::CapsuleCollider>();
+    }
 }
 
 void InspectorPanel::DrawAddComponentMenu(Entity entity) {
@@ -157,6 +213,13 @@ void InspectorPanel::DrawAddComponentMenu(Entity entity) {
         if (!entity.Has<Component::ModelInstance>() && ImGui::MenuItem("Model Instance")) entity.Add<Component::ModelInstance>();
         if (!entity.Has<Component::DirectionalLight>() && ImGui::MenuItem("Directional Light")) entity.Add<Component::DirectionalLight>();
         if (!entity.Has<Component::PointLight>() && ImGui::MenuItem("Point Light")) entity.Add<Component::PointLight>();
+
+        ImGui::Separator();
+        ImGui::TextDisabled("Physics");
+        if (!entity.Has<Component::RigidBody>() && ImGui::MenuItem("Rigid Body")) entity.Add<Component::RigidBody>();
+        if (!entity.Has<Component::BoxCollider>() && ImGui::MenuItem("Box Collider")) entity.Add<Component::BoxCollider>();
+        if (!entity.Has<Component::SphereCollider>() && ImGui::MenuItem("Sphere Collider")) entity.Add<Component::SphereCollider>();
+        if (!entity.Has<Component::CapsuleCollider>() && ImGui::MenuItem("Capsule Collider")) entity.Add<Component::CapsuleCollider>();
 
         ImGui::EndPopup();
     }

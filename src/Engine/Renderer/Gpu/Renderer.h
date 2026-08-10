@@ -65,6 +65,8 @@ public:
     uint32_t GetSceneWidth() const { return _sceneTarget.extent.width; }
     uint32_t GetSceneHeight() const { return _sceneTarget.extent.height; }
 
+    void SetRenderToSwapchain(bool enable) { _renderToSwapchain = enable; }
+
     VkCommandBuffer GetCurrentCommandBuffer() const { return _commandBuffers[_currentFrame]; }
     VkCommandBuffer GetUICommandBuffer() const { return _uiCommandBuffers[_currentFrame]; }
     VkFormat        SwapchainFormat() const { return _swapchain.GetFormat(); }
@@ -94,6 +96,7 @@ private:
     uint32_t _currentFrame       = 0;
     uint32_t _currentImageIndex  = 0;
     bool     framebufferResized_ = false;
+    bool     _renderToSwapchain  = false;
 
     VkPipeline   TraingleGfxPipeline_ = VK_NULL_HANDLE;
     BufferHandle _vertSSBO;

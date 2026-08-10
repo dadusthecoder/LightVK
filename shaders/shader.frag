@@ -40,6 +40,7 @@ layout(std430, descriptor_heap) buffer MaterialBuffer {
 materialHeaps[];
 
 layout(location = 0) in vec2 fragUV;
+layout(location = 1) in vec3 fragNormal;
 
 void main() {
     Material material = materialHeaps[pushData.materialBufferIndex].materials[pushData.materialIndex];
@@ -51,5 +52,10 @@ void main() {
                             fragUV);
     }
 
-    outColor = vec4(texColor.rgb + material.emissiveFactor.rgb * material.emissiveFactor.a, texColor.a);
+    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
+    float diff = max(dot(normalize(fragNormal), lightDir), 0.0);
+    vec3 ambient = vec3(0.2);
+    vec3 lighting = ambient + diff * vec3(0.8);
+    
+    outColor = vec4(texColor.rgb * lighting + material.emissiveFactor.rgb * material.emissiveFactor.a, texColor.a);
 }

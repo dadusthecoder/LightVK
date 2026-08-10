@@ -39,6 +39,7 @@ layout(std140, descriptor_heap) uniform UBO {
 uniformHeaps[];
 
 layout(location = 0) out vec2 fragUV;
+layout(location = 1) out vec3 fragNormal;
 
 void main() {
     uint vertexIdx = indexHeaps[pushData.indexBufferIndex].indices[pushData.indexOffset + gl_VertexIndex];
@@ -50,6 +51,7 @@ void main() {
     // Transform normal into world space (assuming uniform scale for simplicity)
     vec3 normal = mat3(pushData.transform) * vertex.normal;
     normal      = normalize(normal);
+    fragNormal  = normal;
 
     // Reconstruct the view-projection matrix column by column from the descriptor heap
     // to bypass the driver TDR bug reading mat4 directly from UBO arrays

@@ -45,6 +45,7 @@ target_link_libraries(LightVKEngine
     spdlog::spdlog
     fastgltf::fastgltf
     EnTT::EnTT
+    Jolt::Jolt
 )
 
 target_compile_definitions(LightVKEngine

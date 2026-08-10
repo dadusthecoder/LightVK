@@ -9,6 +9,7 @@
 #include "Engine/Renderer/Gpu/Renderer.h"
 #include "Engine/Assets/AssetManager.h"
 
+
 struct GLFWwindow;
 
 namespace Lgt {
@@ -19,7 +20,7 @@ class Application {
 public:
     Application();
     virtual ~Application();
-    Application(const Application&) = delete;
+    Application(const Application&)            = delete;
     Application& operator=(const Application&) = delete;
 
     void Init();
@@ -32,6 +33,10 @@ protected:
     virtual void OnUpdate(float dt) {}
     virtual void OnShutdown() {}
 
+    // called between the BeginFrame and EndFrame
+    // use LgT::Gpu::Renderer->Render(drawlst , viewproj) to render the scene
+    virtual void OnRender() {}
+
     /// Override to draw ImGui widgets. Only called if UI is enabled.
     /// The engine handles BeginFrame/EndFrame and ImGui lifecycle automatically.
     virtual void OnDrawUi() {}
@@ -43,19 +48,18 @@ protected:
     /// Import, upload, and instantiate a model in the current world.
     Assets::AssetGuid LoadModel(const std::filesystem::path& path);
 
-    GLFWwindow*                   _window = nullptr;
-    std::unique_ptr<World>        _world;
-    std::unique_ptr<InputManager> _input;
-    std::unique_ptr<Timer>        _timer;
+    GLFWwindow*                           _window = nullptr;
+    std::unique_ptr<World>                _world;
+    std::unique_ptr<InputManager>         _input;
+    std::unique_ptr<Timer>                _timer;
     std::unique_ptr<Assets::AssetManager> _assets;
 
 private:
     void BeginUi();
     void EndUi();
-    void RenderScene();
-    
-    std::unique_ptr<ImGuiLayer>  _imguiLayer;
-    bool                         uiEnabled_ = false;
+
+    std::unique_ptr<ImGuiLayer> _imguiLayer;
+    bool                        uiEnabled_ = false;
 };
 
 } // namespace Lgt

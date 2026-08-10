@@ -400,7 +400,7 @@ void RendererClass::ResizeSceneTarget(Extent extent) {
 
 void RendererClass::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
     bool isUiPass       = (cmd == _uiCommandBuffers[_currentFrame]);
-    bool useSceneTarget = !isUiPass && (_sceneTarget.colorImage != VK_NULL_HANDLE);
+    bool useSceneTarget = !isUiPass && !_renderToSwapchain;
 
     if (!clearColor) {
         VkImageMemoryBarrier syncBarrier{};
@@ -518,7 +518,7 @@ void RendererClass::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
     colorAttachment.imageLayout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachment.loadOp           = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    colorAttachment.clearValue.color = {{0.0f, 0.0f, 1.0f, 1.0f}};
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -559,7 +559,7 @@ void RendererClass::EndRendering(VkCommandBuffer cmd) {
     vkCmdEndRenderingKHR(cmd);
 
     bool isUiPass       = (cmd == _uiCommandBuffers[_currentFrame]);
-    bool useSceneTarget = !isUiPass && (_sceneTarget.colorImage != VK_NULL_HANDLE);
+    bool useSceneTarget = !isUiPass && !_renderToSwapchain;
 
     // If we just rendered to the offscreen target, transition it to SHADER_READ_ONLY_OPTIMAL for ImGui
     if (useSceneTarget) {

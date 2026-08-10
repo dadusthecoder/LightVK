@@ -4,22 +4,16 @@
 #include "Engine/Scene/SceneGraph.h"
 #include "Engine/Core/GlmConfig.h"
 #include "Engine/Scene/Systems/Transform.h"
-#include "Engine/Scene/Systems/Renderer.h"
+#include "Engine/Physics/PhysicsSystem.h"
 
 #include <entt/entt.hpp>
 
 namespace Lgt {
 
-// forward decals ----------------------------
-namespace Gpu {
-struct DrawList;
-}
-// -------------------------------------------
-
 class World {
 public:
     explicit World();
-    ~World() = default;
+    ~World();
 
     Entity CreateEntity(std::string name = "Entity");
     void   DestroyEntity(Entity entity);
@@ -28,11 +22,12 @@ public:
     entt::registry&       Registry() { return m_Registry; }
     const entt::registry& Registry() const { return m_Registry; }
     SceneGraph&           Graph() { return _graph; }
-    Gpu::DrawList         DrawList();
+
+    template <typename... Components> auto GetView() { return m_Registry.view<Components...>(); }
 
 private:
     System::Transform transform_sys;
-    
+    System::Physics   _physics_sys;
     entt::registry    m_Registry;
     SceneGraph        _graph;
 };
