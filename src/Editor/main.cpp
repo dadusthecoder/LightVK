@@ -125,8 +125,8 @@ public:
                 continue;
 
             // Use offscreen target dimensions if valid, else fallback to Swapchain (runtime)
-            uint32_t sceneW = Lgt::Gpu::Renderer->GetSceneWidth();
-            uint32_t sceneH = Lgt::Gpu::Renderer->GetSceneHeight();
+            uint32_t sceneW = Lgt::Gpu::Renderer->GetCurrentExtent().width;
+            uint32_t sceneH = Lgt::Gpu::Renderer->GetCurrentExtent().height;
             if (sceneW == 0 || sceneH == 0) {
                 sceneW = WIDTH;
                 sceneH = HEIGHT;

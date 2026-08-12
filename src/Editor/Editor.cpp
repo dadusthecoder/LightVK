@@ -44,10 +44,11 @@ void Editor::Update() {
     _panel_inspector.Draw();
     _panel_console.Draw();
     _panel_profiler.Draw();
+
 #if defined(LIGHTVK_EDITOR_TESTS)
     _test_runner.DrawUi();
 #endif
-    ImGui::ShowDemoWindow();
+
     ImGui::End();
 }
 

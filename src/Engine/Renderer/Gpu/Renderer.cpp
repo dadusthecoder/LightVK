@@ -8,6 +8,15 @@
 #include "Renderer.h"
 
 namespace Lgt::Gpu {
+
+Extent RendererClass::GetCurrentExtent() const {
+    if (_renderToSwapchain) {
+        auto ext = _swapchain.GetExtent();
+        return Extent{ext.width, ext.height};
+    }
+    return _sceneTarget.extent;
+}
+
 void RendererClass::Init(GLFWwindow* window) {
 
     _window = window;
@@ -518,7 +527,7 @@ void RendererClass::BeginRendering(VkCommandBuffer cmd, bool clearColor) {
     colorAttachment.imageLayout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachment.loadOp           = clearColor ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
     colorAttachment.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.clearValue.color = {{0.0f, 0.0f, 1.0f, 1.0f}};
+    colorAttachment.clearValue.color = {{0.4f, 0.2f, 0.0f, 1.0f}};
 
     VkRenderingInfo renderingInfo{};
     renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;

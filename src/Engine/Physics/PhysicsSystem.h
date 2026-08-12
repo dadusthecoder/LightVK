@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <glm/glm.hpp>
 
 // Forward declarations — avoid pulling Jolt into every TU
 namespace JPH {
@@ -39,6 +40,9 @@ public:
 
     /// Push an entity's LocalTransform into Jolt (useful for kinematic/editor moves).
     void SyncToPhysics(Entity entity);
+
+    void      SetLinearVelocity(Entity entity, const glm::vec3& velocity);
+    glm::vec3 GetLinearVelocity(Entity entity);
 
 private:
     World* _world = nullptr;

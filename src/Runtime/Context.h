@@ -11,9 +11,8 @@ struct ApplicationContext {
 };
 
 struct PlayerContext {
-    bool        isCursorLocked = false;
-    Lgt::Entity player         = Lgt::Entity::Null();
-    glm::mat4   camera         = glm::mat4(1.0);
+    Lgt::Entity player = Lgt::Entity::Null();
+    glm::mat4   camera = glm::mat4(1.0);
 };
 
 } // namespace Game

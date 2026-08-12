@@ -281,6 +281,24 @@ void Physics::SyncToPhysics(Entity entity) {
     bi.SetPositionAndRotation(id, ToJolt(lt.position), ToJolt(lt.rotation), JPH::EActivation::Activate);
 }
 
+void Physics::SetLinearVelocity(Entity entity, const glm::vec3& velocity) {
+    if (!_initialized || !entity.Has<Component::RigidBody>()) return;
+    auto& rb = entity.Get<Component::RigidBody>();
+    if (!rb._registered || rb.bodyId == 0xFFFFFFFF) return;
+    
+    JPH::BodyID id(rb.bodyId);
+    _physicsSystem->GetBodyInterface().SetLinearVelocity(id, ToJolt(velocity));
+}
+
+glm::vec3 Physics::GetLinearVelocity(Entity entity) {
+    if (!_initialized || !entity.Has<Component::RigidBody>()) return glm::vec3(0.0f);
+    auto& rb = entity.Get<Component::RigidBody>();
+    if (!rb._registered || rb.bodyId == 0xFFFFFFFF) return glm::vec3(0.0f);
+    
+    JPH::BodyID id(rb.bodyId);
+    return ToGlm(_physicsSystem->GetBodyInterface().GetLinearVelocity(id));
+}
+
 // ─── Update ─────────────────────────────────────────────────────────────────
 
 void Physics::Update(float deltaTime) {

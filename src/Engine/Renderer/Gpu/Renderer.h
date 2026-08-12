@@ -60,10 +60,8 @@ public:
 
     void            ResizeSceneTarget(Extent extent);
     VkDescriptorSet GetSceneTexture() const { return _sceneTarget.imguiDescriptor; }
-    Extent          GetSceneExtent() const { return _sceneTarget.extent; }
-    // Extent GetSwapchainExtent(){return { _swapchain.GetExtent }
-    uint32_t GetSceneWidth() const { return _sceneTarget.extent.width; }
-    uint32_t GetSceneHeight() const { return _sceneTarget.extent.height; }
+
+    Extent GetCurrentExtent() const;
 
     void SetRenderToSwapchain(bool enable) { _renderToSwapchain = enable; }
 

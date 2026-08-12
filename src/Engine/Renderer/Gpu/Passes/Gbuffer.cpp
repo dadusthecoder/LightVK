@@ -23,9 +23,9 @@ void GBuffer::Execute(RenderGraphPass* pass, void* userdata) {}
 
 void GBuffer::Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass) {
 
-    Context.albedo = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetSceneExtent()));
-    Context.normal = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetSceneExtent()));
-    Context.depth  = Resources->CreateTexture(TextureDesc::DepthAttachment(Renderer->GetSceneExtent()));
+    Context.albedo = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetCurrentExtent()));
+    Context.normal = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetCurrentExtent()));
+    Context.depth  = Resources->CreateTexture(TextureDesc::DepthAttachment(Renderer->GetCurrentExtent()));
 
     VkImageViewCreateInfo imageViewCi;
     imageViewCi.sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

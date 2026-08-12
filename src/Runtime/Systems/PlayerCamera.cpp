@@ -14,7 +14,7 @@ void PlayerCamera::Update(float dt, const ApplicationContext& appContext, Player
 
     auto* input           = appContext.input;
     auto& playerTransform = playerContext.player.Get<Lgt::Component::LocalTransform>();
-    auto  camera          = playerContext.player.Get<Lgt::Component::Camera>();
+    auto& camera          = playerContext.player.Get<Lgt::Component::Camera>();
 
     if (!input->IsCursorCaptured() && input->IsMouseDown(Lgt::Mouse::Left))
         input->SetCursorCaptured(true);
@@ -51,7 +51,13 @@ void PlayerCamera::Update(float dt, const ApplicationContext& appContext, Player
     // camera. = cameraPos;
     camera.front = glm::normalize(target - cameraPos);
 
-    playerContext.camera = camera.ProjectionMatrix(800.0f / 600.0f) * camera.ViewMatrix(cameraPos);
+    auto extent = Lgt::Gpu::Renderer->GetCurrentExtent();
+    if (extent.height == 0)
+        return;
+
+    float aspect = (float)extent.width / (float)extent.height;
+
+    playerContext.camera = camera.ProjectionMatrix(aspect) * camera.ViewMatrix(cameraPos);
 }
 
 } // namespace Game::System

@@ -5,7 +5,7 @@ void Player::Init(const ApplicationContext& appContext, PlayerContext& playerCon
 
     auto player = appContext.world->CreateEntity("Player");
 
-    player.Add<Lgt::Component::RigidBody>().motionType = Lgt::Component::MotionType::Kinematic;
+    player.Add<Lgt::Component::RigidBody>().motionType = Lgt::Component::MotionType::Dynamic;
     player.Add<Lgt::Component::CapsuleCollider>(1.0f, 0.2f);
     player.Add<Lgt::Component::Camera>();
     auto sphere = appContext.assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Untitled.gltf");
@@ -22,20 +22,46 @@ void Player::Init(const ApplicationContext& appContext, PlayerContext& playerCon
 }
 
 void Player::Update(float dt, const ApplicationContext& appContext, PlayerContext& playerContext) {
-    auto& transform = playerContext.player.Get<Lgt::Component::LocalTransform>();
+    auto& player  = playerContext.player;
+    auto& camera  = player.Get<Lgt::Component::Camera>();
+    auto& physics = appContext.world->GetPhysics();
+
+    glm::vec3 currentVel = physics.GetLinearVelocity(player);
+
+    glm::vec3 moveVel(0.0f);
+    float     speed = 5.0f;
+
+    if (appContext.input->IsKeyDown(Lgt::Key::LeftShift))
+        speed *= 2.0f;
+
+    glm::vec3 right = glm::normalize(glm::cross(camera.front, camera.up));
 
     if (appContext.input->IsKeyDown(Lgt::Key::W))
-        transform.position.z -= 1.0f * dt;
+        moveVel += camera.front;
+
     if (appContext.input->IsKeyDown(Lgt::Key::S))
-        transform.position.z += 1.0f * dt;
+        moveVel -= camera.front;
+
     if (appContext.input->IsKeyDown(Lgt::Key::A))
-        transform.position.x -= 1.0f * dt;
+        moveVel -= right;
+
     if (appContext.input->IsKeyDown(Lgt::Key::D))
-        transform.position.x += 1.0f * dt;
-    if (appContext.input->IsKeyDown(Lgt::Key::Space))
-        transform.position.y += 1.0f * dt;
-    if (appContext.input->IsKeyDown(Lgt::Key::LeftControl))
-        transform.position.y -= 1.0f * dt;
+        moveVel += right;
+
+    if (appContext.input->IsKeyDown(Lgt::Key::E))
+        moveVel += camera.up;
+
+    if (appContext.input->IsKeyDown(Lgt::Key::Q))
+        moveVel -= camera.up;
+
+    // Prevent diagonal movement from being faster
+    if (glm::length2(moveVel) > 0.0f)
+        moveVel = glm::normalize(moveVel) * speed;
+
+    // Preserve physics velocity, e.g. gravity
+    moveVel.y = currentVel.y;
+
+    physics.SetLinearVelocity(player, moveVel);
 }
 
 } // namespace Game::System

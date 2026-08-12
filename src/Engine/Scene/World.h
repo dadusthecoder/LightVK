@@ -22,6 +22,7 @@ public:
     entt::registry&       Registry() { return m_Registry; }
     const entt::registry& Registry() const { return m_Registry; }
     SceneGraph&           Graph() { return _graph; }
+    System::Physics&      GetPhysics() { return _physics_sys; }
 
     template <typename... Components> auto GetView() { return m_Registry.view<Components...>(); }
 
