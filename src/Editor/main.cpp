@@ -24,7 +24,7 @@ public:
         auto floor                                           = _world->CreateEntity("Floor");
         floor.Get<Lgt::Component::LocalTransform>().position = {0.f, -5.f, 0.f};
         floor.Get<Lgt::Component::LocalTransform>().scale    = {50.f, 0.1f, 50.f};
-        auto floorId                                         = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/cube.gltf");
+        auto floorId                                         = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/cube/cube.gltf");
         if (floorId.IsValid())
             floor.Add<Lgt::Component::ModelInstance>().model = floorId;
 
@@ -36,7 +36,7 @@ public:
         // Create a sphere
         auto sphere                                           = _world->CreateEntity("Sphere");
         sphere.Get<Lgt::Component::LocalTransform>().position = {0.f, 10.f, 0.f};
-        auto sphereId = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Untitled.gltf");
+        auto sphereId = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Sphere.gltf");
         if (sphereId)
             sphere.Add<Lgt::Component::ModelInstance>().model = sphereId;
 

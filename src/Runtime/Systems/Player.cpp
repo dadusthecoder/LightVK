@@ -8,12 +8,12 @@ void Player::Init(const ApplicationContext& appContext, PlayerContext& playerCon
     player.Add<Lgt::Component::RigidBody>().motionType = Lgt::Component::MotionType::Dynamic;
     player.Add<Lgt::Component::CapsuleCollider>(1.0f, 0.2f);
     player.Add<Lgt::Component::Camera>();
-    auto sphere = appContext.assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Untitled.gltf");
+    auto sphere = appContext.assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Sphere.gltf");
     if (sphere)
         player.Add<Lgt::Component::ModelInstance>().model = sphere;
 
     player.Add<Component::Player>("Mahesh", 100, true);
-
+   
     auto& transform = player.Get<Lgt::Component::LocalTransform>();
 
     transform.position    = glm::vec3(0.0f, 2.0f, 5.0f); // Move up and back so we aren't clipping the floor
