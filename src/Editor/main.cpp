@@ -3,6 +3,7 @@
 #include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Physics/PhysicsComponents.h"
 #include "Engine/Renderer/Gpu/Context.h"
+#include "Utils/FileDialogs.h"
 
 #include "Editor.h"
 
@@ -13,57 +14,67 @@ public:
     void OnInit() override {
         EnableUi();
         Lgt::Gpu::Renderer->ResizeSceneTarget({1280, 720});
+
+        Lgt::g_WindowHandle = _window;
+
         editor.Init(_world.get());
 
         // Editor starts in Edit mode — physics disabled
         _world->SetPhysicsEnabled(false);
 
-        // Wire up play/stop callbacks
-        auto context = editor.GetContext();
+        // Wire up callbacks
+        auto context    = editor.GetContext();
         context->onPlay = [this]() { EnterPlayMode(); };
         context->onStop = [this]() { ExitPlayMode(); };
+
+        context->onSaveSceneAs = [this, context]() {
+            std::string filepath = Lgt::FileDialogs::SaveFile("LightVK Scene (*.bin)\0*.bin\0");
+            if (!filepath.empty()) {
+                context->currentScenePath = filepath;
+                Lgt::SceneSerializer(_world.get()).SerializeBinary(filepath);
+            }
+        };
+
+        context->onSaveScene = [this, context]() {
+            if (!context->currentScenePath.empty()) {
+                Lgt::SceneSerializer(_world.get()).SerializeBinary(context->currentScenePath);
+            } else {
+                if (context->onSaveSceneAs)
+                    context->onSaveSceneAs();
+            }
+        };
+
+        context->onLoadScene = [this, context]() {
+            std::string filepath = Lgt::FileDialogs::OpenFile("LightVK Scene (*.bin)\0*.bin\0");
+            if (!filepath.empty()) {
+                context->currentScenePath = filepath;
+                Lgt::SceneSerializer(_world.get()).DeserializeBinary(filepath);
+
+                // Load models for deserialized entities
+                auto modelView = _world->Registry().view<Lgt::Component::ModelInstance>();
+                for (const auto entity : modelView) {
+                    const auto& instance = modelView.get<Lgt::Component::ModelInstance>(entity);
+                    _assets->LoadModel(instance.model);
+                }
+            }
+        };
 
         // Create editor camera
         auto cam = _world->CreateEntity("EditorCamera");
         cam.Add<Lgt::Component::Camera>();
         cam.Get<Lgt::Component::LocalTransform>().position = {0.f, 0.f, 5.f};
-
-        // Create a floor
-        auto floor                                           = _world->CreateEntity("Floor");
-        floor.Get<Lgt::Component::LocalTransform>().position = {0.f, -5.f, 0.f};
-        floor.Get<Lgt::Component::LocalTransform>().scale    = {50.f, 0.1f, 50.f};
-        auto floorId                                         = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/cube/cube.gltf");
-        if (floorId.IsValid())
-            floor.Add<Lgt::Component::ModelInstance>().model = floorId;
-
-        auto& floorRB       = floor.Add<Lgt::Component::RigidBody>();
-        floorRB.motionType  = Lgt::Component::MotionType::Static;
-        floorRB.restitution = 0.5f;
-        floor.Add<Lgt::Component::BoxCollider>(glm::vec3{50.f, 0.5f, 50.f});
-
-        // Create a sphere
-        auto sphere                                           = _world->CreateEntity("Sphere");
-        sphere.Get<Lgt::Component::LocalTransform>().position = {0.f, 10.f, 0.f};
-        auto sphereId = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Sphere.gltf");
-        if (sphereId)
-            sphere.Add<Lgt::Component::ModelInstance>().model = sphereId;
-
-        auto& sphereRB       = sphere.Add<Lgt::Component::RigidBody>();
-        sphereRB.motionType  = Lgt::Component::MotionType::Dynamic;
-        sphereRB.restitution = 0.8f;
-        sphere.Add<Lgt::Component::SphereCollider>(0.5f);
-        
     }
 
     void EnterPlayMode() {
         auto context = editor.GetContext();
-        if (context->mode == Lgt::Editor::EditorMode::Play) return;
+        if (context->mode == Lgt::Editor::EditorMode::Play)
+            return;
 
         // Snapshot all LocalTransforms
         context->transformSnapshot.clear();
         auto view = _world->Registry().view<Lgt::Component::LocalTransform>();
         for (auto e : view) {
-            auto& lt = view.get<Lgt::Component::LocalTransform>(e);
+            auto& lt                                             = view.get<Lgt::Component::LocalTransform>(e);
             context->transformSnapshot[static_cast<uint32_t>(e)] = lt;
         }
 
@@ -74,7 +85,8 @@ public:
 
     void ExitPlayMode() {
         auto context = editor.GetContext();
-        if (context->mode == Lgt::Editor::EditorMode::Edit) return;
+        if (context->mode == Lgt::Editor::EditorMode::Edit)
+            return;
 
         // Remove all physics bodies by resetting _registered flags
         // Physics won't step anymore, so we just need to clean up Jolt state
@@ -170,12 +182,6 @@ public:
 
         // Apply transform changes (always needed for editor camera etc.)
         _world->UpdateTransforms();
-
-        static int frameCount = 0;
-        frameCount++;
-        if (frameCount > 5) {
-            glfwSetWindowShouldClose(_window, true);
-        }
     }
 
     void OnRender() override {
@@ -211,27 +217,28 @@ public:
         auto               modelView = _world->Registry().view<Lgt::Component::ModelInstance, Lgt::Component::WorldTransform>();
         for (const auto entity : modelView) {
 
-                const auto& worldTransform = modelView.get<Lgt::Component::WorldTransform>(entity).matrix;
-                const auto& instance       = modelView.get<Lgt::Component::ModelInstance>(entity);
+            const auto& worldTransform = modelView.get<Lgt::Component::WorldTransform>(entity).matrix;
+            const auto& instance       = modelView.get<Lgt::Component::ModelInstance>(entity);
 
-                if (!instance.visible)
-                    continue;
+            if (!instance.visible)
+                continue;
 
-                const auto* gpuModel = _assets->GetGpuModel(instance.model);
-                if (gpuModel == nullptr)
-                    continue;
+            const auto* gpuModel = _assets->GetGpuModel(instance.model);
+            if (gpuModel == nullptr)
+                continue;
 
-                const size_t firstCommand = sceneDrawList.commands.size();
-                sceneDrawList.commands.insert(
-                    sceneDrawList.commands.end(), gpuModel->drawList.commands.begin(), gpuModel->drawList.commands.end());
-                sceneDrawList.indexCounts.insert(
-                    sceneDrawList.indexCounts.end(), gpuModel->drawList.indexCounts.begin(), gpuModel->drawList.indexCounts.end());
-                for (size_t i = firstCommand; i < sceneDrawList.commands.size(); ++i)
-                    sceneDrawList.commands[i].transform = worldTransform * sceneDrawList.commands[i].transform;
-            }
+            const size_t firstCommand = sceneDrawList.commands.size();
+            sceneDrawList.commands.insert(
+                sceneDrawList.commands.end(), gpuModel->drawList.commands.begin(), gpuModel->drawList.commands.end());
+            sceneDrawList.indexCounts.insert(
+                sceneDrawList.indexCounts.end(), gpuModel->drawList.indexCounts.begin(), gpuModel->drawList.indexCounts.end());
+            for (size_t i = firstCommand; i < sceneDrawList.commands.size(); ++i)
+                sceneDrawList.commands[i].transform = worldTransform * sceneDrawList.commands[i].transform;
+        }
 
-        if (!sceneDrawList.empty())
-            Lgt::Gpu::Renderer->Render(sceneDrawList, viewProj);
+        // Always call Render, even if the draw list is empty,
+        // to ensure the scene target is cleared and transitioned properly for ImGui.
+        Lgt::Gpu::Renderer->Render(sceneDrawList, viewProj);
     }
 
     void OnDrawUi() override {

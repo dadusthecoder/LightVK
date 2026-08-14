@@ -38,6 +38,31 @@ void Editor::Update() {
     ImGui::Begin("DockSpace", nullptr, flags);
     ImGui::PopStyleVar(3);
 
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 2.0f));
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {
+                if (_context.onSaveScene) _context.onSaveScene();
+            }
+            if (ImGui::MenuItem("Save Scene As...")) {
+                if (_context.onSaveSceneAs) _context.onSaveSceneAs();
+            }
+            if (ImGui::MenuItem("Load Scene")) {
+                if (_context.onLoadScene) _context.onLoadScene();
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+    ImGui::PopStyleVar();
+
+    // Handle shortcuts
+    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
+        if (ImGui::IsKeyPressed(ImGuiKey_S, false)) {
+            if (_context.onSaveScene) _context.onSaveScene();
+        }
+    }
+
     // ── Play/Stop Toolbar ──────────────────────────────────────────────
     {
         float toolbarHeight = 32.0f;

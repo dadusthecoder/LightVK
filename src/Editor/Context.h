@@ -35,6 +35,12 @@ struct Context {
     // Callbacks set by the application to trigger play/stop
     std::function<void()> onPlay;
     std::function<void()> onStop;
+
+    // Callbacks for file operations
+    std::string currentScenePath;
+    std::function<void()> onSaveScene;
+    std::function<void()> onSaveSceneAs;
+    std::function<void()> onLoadScene;
 };
 
 } // namespace Editor
