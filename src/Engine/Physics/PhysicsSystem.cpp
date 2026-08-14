@@ -199,13 +199,16 @@ void Physics::SyncNewBodies() {
 
         if (reg.all_of<Component::BoxCollider>(e)) {
             auto& col = reg.get<Component::BoxCollider>(e);
-            shape = new JPH::BoxShape(JPH::Vec3(col.halfExtents.x, col.halfExtents.y, col.halfExtents.z));
+            shape = new JPH::BoxShape(JPH::Vec3(col.halfExtents.x * lt.scale.x, col.halfExtents.y * lt.scale.y, col.halfExtents.z * lt.scale.z));
         } else if (reg.all_of<Component::SphereCollider>(e)) {
             auto& col = reg.get<Component::SphereCollider>(e);
-            shape = new JPH::SphereShape(col.radius);
+            // Sphere expects a single radius, use max scale component
+            float maxScale = std::max({std::abs(lt.scale.x), std::abs(lt.scale.y), std::abs(lt.scale.z)});
+            shape = new JPH::SphereShape(col.radius * maxScale);
         } else if (reg.all_of<Component::CapsuleCollider>(e)) {
             auto& col = reg.get<Component::CapsuleCollider>(e);
-            shape = new JPH::CapsuleShape(col.halfHeight, col.radius);
+            float maxScaleXZ = std::max(std::abs(lt.scale.x), std::abs(lt.scale.z));
+            shape = new JPH::CapsuleShape(col.halfHeight * std::abs(lt.scale.y), col.radius * maxScaleXZ);
         } else {
             // No collider attached — skip
             continue;

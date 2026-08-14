@@ -1,11 +1,11 @@
 #pragma once
 #include "Engine/Core/Core.h"
 
-#include "Engine/Renderer/Gpu/Renderer.h"
-#include "Engine/Renderer/Gpu/Resource.h"
-#include "Engine/Renderer/Gpu/DescriptorHeap.h"
-#include "Engine/Renderer/Gpu/ResourceManager.h"
-#include "Engine/Renderer/Gpu/RenderGraph.h"
+#include "Engine/Gpu/Renderer.h"
+#include "Engine/Gpu/Resource.h"
+#include "Engine/Gpu/DescriptorHeap.h"
+#include "Engine/Gpu/ResourceManager.h"
+#include "Engine/Gpu/FrameGraph.h"
 
 namespace Lgt {
 namespace Gpu::Pass {
@@ -26,8 +26,8 @@ public:
     static const PassContext& GetContext();
     static void Reset();
 
-    static void Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass);
-    static void Execute(RenderGraphPass* pass, void* userdata);
+    static void Setup(const FrameGraphBuilder& builder, FrameGraphPass* pass);
+    static void Execute(FrameGraphPass* pass, void* userdata);
 
 private:
     static PassContext Context;

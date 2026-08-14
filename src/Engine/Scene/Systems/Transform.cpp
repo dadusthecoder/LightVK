@@ -17,7 +17,7 @@ void System::Transform::Update() {
         Entity entity(e, _world);
         auto&  entity_h = entity.Get<Component::Hierarchy>();
 
-        if (!entity_h.parent.IsValid())
+        if (!entity_h.parent)
             UpdateSubtree(entity);
     }
 }
@@ -30,7 +30,7 @@ void System::Transform::ComputeWorld(Entity entity) {
     auto& entity_world_t = entity.Get<Component::WorldTransform>();
     auto& entity_local_t = entity.Get<Component::LocalTransform>();
 
-    if (!entity_h.parent.IsValid()) {
+    if (!entity_h.parent) {
         entity_world_t.matrix = entity_local_t.Matrix();
         return;
     } else {
@@ -41,7 +41,7 @@ void System::Transform::ComputeWorld(Entity entity) {
 
 void System::Transform::UpdateSubtree(Entity entity) {
 
-    if (!entity.IsValid())
+    if (!entity)
         return;
 
     ComputeWorld(entity);
@@ -49,7 +49,7 @@ void System::Transform::UpdateSubtree(Entity entity) {
     auto& entity_h = entity.Get<Component::Hierarchy>();
     auto  next     = entity_h.firstChild;
 
-    while (next.IsValid()) {
+    while (next) {
         UpdateSubtree(next);
         next = next.Get<Component::Hierarchy>().nextSibling;
     }

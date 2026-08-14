@@ -3,7 +3,7 @@
 #include "Helpers.h"
 
 #include "Context.h"
-#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Gpu/Context.h"
 
 uint32_t selectMemoryType(VulkanDevice* device, uint32_t typeFilter, VkMemoryPropertyFlags flags) {
     auto deviceprops = device->PhysicalDeviceMemoryProperties();

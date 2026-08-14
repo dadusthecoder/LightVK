@@ -6,7 +6,7 @@
 #include "Engine/Core/Timer.h"
 #include "Engine/Scene/World.h"
 #include "Engine/Core/InputManager.h"
-#include "Engine/Renderer/Gpu/Renderer.h"
+#include "Engine/Gpu/Renderer.h"
 #include "Engine/Assets/AssetManager.h"
 
 

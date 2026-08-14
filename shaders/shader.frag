@@ -13,6 +13,8 @@ layout(push_constant) uniform PushData {
     uint indexOffset;
     uint materialIndex;
     uint materialBufferIndex;
+    uint isWireframe;
+    uint padding;
     mat4 transform;
 }
 pushData;
@@ -43,6 +45,11 @@ layout(location = 0) in vec2 fragUV;
 layout(location = 1) in vec3 fragNormal;
 
 void main() {
+    if (pushData.isWireframe == 1) {
+        outColor = vec4(0.2, 1.0, 0.2, 1.0); // Bright green
+        return;
+    }
+
     Material material = materialHeaps[pushData.materialBufferIndex].materials[pushData.materialIndex];
 
     vec4 texColor = material.baseColorFactor;

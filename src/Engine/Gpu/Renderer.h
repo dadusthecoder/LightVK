@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 
-#include "Engine/Renderer/Vulkan/Swapchain.h"
+#include "Engine/Gpu/Vulkan/Swapchain.h"
 #include "Resource.h"
 
 namespace Lgt::Gpu {
@@ -18,7 +18,8 @@ struct DrawCommand {
     uint32_t  indexOffset       = 0;
     uint32_t  materialIndex     = 0;
     uint32_t  materialBufferIndex = 0;
-    uint32_t  pushConstantPadding[2] = {};
+    uint32_t  isWireframe       = 0;
+    uint32_t  padding           = 0;
     glm::mat4 transform         = glm::mat4(1.0f);
 };
 
@@ -53,6 +54,7 @@ public:
     void Init(GLFWwindow* window);
     void ShutDown();
     void Render(const DrawList& list, const glm::mat4& viewProj);
+    void Render(const DrawList& solidList, const DrawList& wireframeList, const glm::mat4& viewProj);
     void BeginRendering(VkCommandBuffer cmd, bool clearColor = true);
     void EndRendering(VkCommandBuffer cmd);
     bool BeginFrame(uint32_t frameIndex);
@@ -97,6 +99,7 @@ private:
     bool     _renderToSwapchain  = false;
 
     VkPipeline   TraingleGfxPipeline_ = VK_NULL_HANDLE;
+    VkPipeline   _wireframePipeline   = VK_NULL_HANDLE;
     BufferHandle _vertSSBO;
     uint32_t     vertGpuIndex = 0;
 

@@ -1,7 +1,7 @@
-#include "Engine/Renderer/Vulkan/Allocator.h"
-#include "Engine/Renderer/Vulkan/Context.h"
+#include "Engine/Gpu/Vulkan/Allocator.h"
+#include "Engine/Gpu/Vulkan/Context.h"
 #include "Engine/Core/Logger.h"
-#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Gpu/Context.h"
 
 #include "ResourceManager.h"
 

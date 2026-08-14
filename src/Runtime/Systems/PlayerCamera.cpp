@@ -1,7 +1,7 @@
 #include "PlayerCamera.h"
 
 #include "../Context.h"
-#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Gpu/Context.h"
 
 namespace Game::System {
 void PlayerCamera::Init(const ApplicationContext& appContext, PlayerContext& playerContext) {}

@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "Engine/Core/Logger.h"
-#include "Engine/Renderer/Vulkan/Helpers.h"
-#include "Engine/Renderer/Gpu/Resource.h"
+#include "Engine/Gpu/Vulkan/Helpers.h"
+#include "Engine/Gpu/Resource.h"
 
 namespace Lgt::Gpu { // namespace  Lgt::Gpu
 
@@ -49,13 +49,13 @@ template <> struct hash<Lgt::Gpu::ResourceKey> {
 
 namespace Lgt::Gpu {
 
-class RenderGraphBuilder;
-struct RenderGraphPass;
+class FrameGraphBuilder;
+struct FrameGraphPass;
 
-using RenderGraphSetupCallback   = void (*)(const RenderGraphBuilder& builder, RenderGraphPass* pass);
-using RenderGraphExecuteCallback = void (*)(RenderGraphPass* pass, void* userdata);
+using FrameGraphSetupCallback   = void (*)(const FrameGraphBuilder& builder, FrameGraphPass* pass);
+using FrameGraphExecuteCallback = void (*)(FrameGraphPass* pass, void* userdata);
 
-class RenderGraphBuilder {
+class FrameGraphBuilder {
 public:
     TextureHandle CreateTexture(...);
     BufferHandle  CreateBuffer(...);
@@ -65,36 +65,36 @@ public:
     void          Export(TextureHandle);
 };
 
-struct RenderGraphPass {
-    uint32_t                   passID  = UINT32_MAX;
-    std::string                name    = "pass";
-    RenderGraphExecuteCallback execute = nullptr;
-    RenderGraphSetupCallback   setup   = nullptr;
+struct FrameGraphPass {
+    uint32_t                  passID  = UINT32_MAX;
+    std::string               name    = "pass";
+    FrameGraphExecuteCallback execute = nullptr;
+    FrameGraphSetupCallback   setup   = nullptr;
 
     std::vector<ResourceRef> resources;
 
-    RenderGraphPass& Reads(TextureHandle texture) {
+    FrameGraphPass& Reads(TextureHandle texture) {
         resources.push_back({texture.value, ResourceKind::Texture, Access::Read});
         return *this;
     }
 
-    RenderGraphPass& Reads(BufferHandle buffer) {
+    FrameGraphPass& Reads(BufferHandle buffer) {
         resources.push_back({buffer.value, ResourceKind::Buffer, Access::Read});
         return *this;
     }
 
-    RenderGraphPass& Writes(TextureHandle texture) {
+    FrameGraphPass& Writes(TextureHandle texture) {
         resources.push_back({texture.value, ResourceKind::Texture, Access::Write});
         return *this;
     }
 
-    RenderGraphPass& Writes(BufferHandle buffer) {
+    FrameGraphPass& Writes(BufferHandle buffer) {
         resources.push_back({buffer.value, ResourceKind::Buffer, Access::Write});
         return *this;
     }
 };
 
-struct RenderGraphNode {
+struct FrameGraphNode {
     uint32_t                     indegree = 0;
     uint32_t                     passID   = UINT32_MAX;
     std::unordered_set<uint32_t> childern;
@@ -105,13 +105,14 @@ struct ResourceInfo {
     std::vector<uint32_t> consumers;
 };
 
-class RenderGraphClass {
+class FrameGraphClass {
 public:
     void Init();
     void ShoutDown();
     void Reset();
 
     // TODO
+
     // 2) Barrier Generation
 
     // 1) Memory aliasing
@@ -125,7 +126,7 @@ public:
     // 3) imported resources
 
     template <typename T> void AddPass() {
-        RenderGraphPass pass;
+        FrameGraphPass pass;
         pass.passID  = static_cast<uint32_t>(passes_.size());
         pass.execute = &T::Execute;
         pass.setup   = &T::Setup;
@@ -141,9 +142,9 @@ private:
     void Validate();
     void TopologicalSort();
 
-    std::vector<RenderGraphPass> passes_;
-    std::vector<RenderGraphNode> nodes_;
-    std::vector<uint32_t>        execution_;
+    std::vector<FrameGraphPass> passes_;
+    std::vector<FrameGraphNode> nodes_;
+    std::vector<uint32_t>       execution_;
 
     std::unordered_map<ResourceKey, ResourceInfo> resources_;
 };

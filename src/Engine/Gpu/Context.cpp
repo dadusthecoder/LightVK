@@ -1,7 +1,7 @@
 
-#include "Engine/Renderer/Vulkan/Context.h"
-#include "Engine/Renderer/Gpu/Context.h"
-#include "Engine/Renderer/Gpu/ResourceManager.h"
+#include "Engine/Gpu/Vulkan/Context.h"
+#include "Engine/Gpu/Context.h"
+#include "Engine/Gpu/ResourceManager.h"
 
 namespace Lgt::Gpu {
 
@@ -9,7 +9,7 @@ RendererClass*    Renderer     = nullptr;
 DescriptorHeap*   ResourceHeap = nullptr;
 DescriptorHeap*   SamplerHeap  = nullptr;
 ResourceManager*  Resources    = nullptr;
-RenderGraphClass* RenderGraph  = nullptr;
+FrameGraphClass* FrameGraph  = nullptr;
 
 void Init(GLFWwindow* window) {
 
@@ -18,11 +18,11 @@ void Init(GLFWwindow* window) {
 
     Resources   = new ResourceManager();
     Renderer    = new RendererClass();
-    RenderGraph = new RenderGraphClass();
+    FrameGraph = new FrameGraphClass();
 
     Resources->Init();
     Renderer->Init(window);
-    RenderGraph->Init();
+    FrameGraph->Init();
 }
 
 void Shutdown() {
@@ -39,8 +39,8 @@ void Shutdown() {
     Renderer->ShutDown();
     delete Renderer;
 
-    RenderGraph->ShoutDown();
-    delete RenderGraph;
+    FrameGraph->ShoutDown();
+    delete FrameGraph;
 }
 
 } // namespace Lgt::Gpu

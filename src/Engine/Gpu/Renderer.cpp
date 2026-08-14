@@ -3,7 +3,7 @@
 #include <imgui_impl_vulkan.h>
 #include "Engine/Core/Logger.h"
 #include "Context.h"
-#include "Engine/Renderer/Vulkan/Context.h"
+#include "Engine/Gpu/Vulkan/Context.h"
 
 #include "Renderer.h"
 
@@ -103,6 +103,9 @@ void RendererClass::ShutDown() {
 
     _swapchain.Cleanup(Vulkan::g_Device->Logical());
     vkDestroyPipeline(Vulkan::g_Device->Logical(), TraingleGfxPipeline_, nullptr);
+    if (_wireframePipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(Vulkan::g_Device->Logical(), _wireframePipeline, nullptr);
+    }
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         vkDestroySemaphore(Lgt::Vulkan::g_Device->Logical(), _imageAvailableSems[i], nullptr);
@@ -172,6 +175,11 @@ void RendererClass::recreateSwapchain() {
 }
 
 void RendererClass::Render(const DrawList& list, const glm::mat4& viewProj) {
+    DrawList emptyWireframeList;
+    Render(list, emptyWireframeList, viewProj);
+}
+
+void RendererClass::Render(const DrawList& solidList, const DrawList& wireframeList, const glm::mat4& viewProj) {
 
     // Upload camera view-projection matrix to per-frame UBO
     auto* ubo = Resources->GetBuffer(_frameUBO[_currentFrame]);
@@ -179,6 +187,7 @@ void RendererClass::Render(const DrawList& list, const glm::mat4& viewProj) {
     FrameUBO ubodata{viewProj};
     memcpy(ubo->mapped, &ubodata, sizeof(FrameUBO));
     //------------------------------------------------
+
     auto cmd = _commandBuffers[_currentFrame];
 
     uint32_t targetWidth  = _swapchain.GetExtent().width;
@@ -205,25 +214,49 @@ void RendererClass::Render(const DrawList& list, const glm::mat4& viewProj) {
     vkCmdSetScissor(cmd, 0, 1, &scissor);
 
     BeginRendering(cmd, true);
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TraingleGfxPipeline_);
 
-    for (size_t i = 0; i < list.commands.size(); ++i) {
+    // Draw solid objects
+    if (!solidList.empty()) {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TraingleGfxPipeline_);
+        for (size_t i = 0; i < solidList.commands.size(); ++i) {
+            auto command       = solidList.commands[i];
+            command.frameIndex = _currentFrame;
 
-        auto command = list.commands[i];
-        command.frameIndex = _currentFrame;
+            VkHostAddressRangeConstEXT cpuPushDataInfo{};
+            cpuPushDataInfo.size    = sizeof(DrawCommand);
+            cpuPushDataInfo.address = &command;
 
-        VkHostAddressRangeConstEXT cpuPushDataInfo{};
-        cpuPushDataInfo.size    = sizeof(DrawCommand);
-        cpuPushDataInfo.address = &command;
+            VkPushDataInfoEXT pushDataInfo{};
+            pushDataInfo.sType  = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT;
+            pushDataInfo.offset = 0;
+            pushDataInfo.data   = cpuPushDataInfo;
 
-        VkPushDataInfoEXT pushDataInfo{};
-        pushDataInfo.sType  = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT;
-        pushDataInfo.offset = 0;
-        pushDataInfo.data   = cpuPushDataInfo;
-
-        vkCmdPushDataEXT(cmd, &pushDataInfo);
-        vkCmdDraw(cmd, list.indexCounts[i], 1, 0, 0);
+            vkCmdPushDataEXT(cmd, &pushDataInfo);
+            vkCmdDraw(cmd, solidList.indexCounts[i], 1, 0, 0);
+        }
     }
+
+    // Draw wireframe objects
+    if (!wireframeList.empty() && _wireframePipeline != VK_NULL_HANDLE) {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _wireframePipeline);
+        for (size_t i = 0; i < wireframeList.commands.size(); ++i) {
+            auto command       = wireframeList.commands[i];
+            command.frameIndex = _currentFrame;
+
+            VkHostAddressRangeConstEXT cpuPushDataInfo{};
+            cpuPushDataInfo.size    = sizeof(DrawCommand);
+            cpuPushDataInfo.address = &command;
+
+            VkPushDataInfoEXT pushDataInfo{};
+            pushDataInfo.sType  = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT;
+            pushDataInfo.offset = 0;
+            pushDataInfo.data   = cpuPushDataInfo;
+
+            vkCmdPushDataEXT(cmd, &pushDataInfo);
+            vkCmdDraw(cmd, wireframeList.indexCounts[i], 1, 0, 0);
+        }
+    }
+
     EndRendering(cmd);
 }
 
@@ -269,7 +302,6 @@ bool RendererClass::BeginFrame(uint32_t frameindex) {
     samplerBind.heapRange           = samplerDeviceAdderRange;
     samplerBind.reservedRangeOffset = SamplerHeap->GerReservedRangeOffset();
     samplerBind.reservedRangeSize   = SamplerHeap->GetReservedRangeSize();
-
 
     VkCommandBuffer cmd = _commandBuffers[_currentFrame];
     vkResetCommandBuffer(cmd, 0);
@@ -781,6 +813,12 @@ void RendererClass::createTestResources() {
     if (vkCreateGraphicsPipelines(
             Lgt::Vulkan::g_Device->Logical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &TraingleGfxPipeline_) != VK_SUCCESS)
         throw std::runtime_error("vkCreateGraphicsPipelines failed");
+
+    rasterizer.polygonMode = VK_POLYGON_MODE_LINE;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
+    if (vkCreateGraphicsPipelines(
+            Lgt::Vulkan::g_Device->Logical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_wireframePipeline) != VK_SUCCESS)
+        throw std::runtime_error("vkCreateGraphicsPipelines for wireframe failed");
 
     vkDestroyShaderModule(Lgt::Vulkan::g_Device->Logical(), fragModule, nullptr);
     vkDestroyShaderModule(Lgt::Vulkan::g_Device->Logical(), vertModule, nullptr);

@@ -7,7 +7,7 @@
 #include "Assets.h"
 #include "AssetDatabase.h"
 #include "CookedAsset.h"
-#include "Engine/Renderer/Gpu/Renderer.h"
+#include "Engine/Gpu/Renderer.h"
 
 namespace Lgt::Assets {
 

@@ -16,6 +16,8 @@ layout(push_constant) uniform PushData {
     uint indexOffset;
     uint materialIndex;
     uint materialBufferIndex;
+    uint isWireframe;
+    uint padding;
     mat4 transform;
 }
 pushData;

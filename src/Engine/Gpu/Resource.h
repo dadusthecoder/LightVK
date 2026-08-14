@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "Engine/Renderer/Vulkan/Helpers.h"
+#include "Engine/Gpu/Vulkan/Helpers.h"
 
 #include "Engine/Core/Logger.h"
 #include "Engine/Core/Core.h"

@@ -10,11 +10,11 @@
 
 #include "Engine/Assets/Assets.h"
 #include "Engine/Core/Logger.h"
-#include "Engine/Renderer/Gpu/Context.h"
-#include "Engine/Renderer/Gpu/Passes/Gbuffer.h"
-#include "Engine/Renderer/Gpu/ResourceManager.h"
-#include "Engine/Renderer/Vulkan/Context.h"
-#include "Engine/Renderer/Vulkan/Uploader.h"
+#include "Engine/Gpu/Context.h"
+#include "Engine/Gpu/Passes/Gbuffer.h"
+#include "Engine/Gpu/ResourceManager.h"
+#include "Engine/Gpu/Vulkan/Context.h"
+#include "Engine/Gpu/Vulkan/Uploader.h"
 
 namespace Lgt::Editor::Tests {
 namespace {
@@ -116,14 +116,14 @@ void EditorTestRunner::RegisterBuiltInTests() {
         "GBuffer Render Graph",
         "Builds and executes the current GBuffer render-graph setup.",
         [] {
-            Gpu::RenderGraph->AddPass<Gpu::Pass::GBuffer>();
-            Gpu::RenderGraph->Compile();
-            Gpu::RenderGraph->Execute();
+            Gpu::FrameGraph->AddPass<Gpu::Pass::GBuffer>();
+            Gpu::FrameGraph->Compile();
+            Gpu::FrameGraph->Execute();
             return TestResult::Pass("GBuffer graph compiled and executed");
         },
         [] {
             Gpu::Pass::GBuffer::Reset();
-            Gpu::RenderGraph->Reset();
+            Gpu::FrameGraph->Reset();
         });
 }
 

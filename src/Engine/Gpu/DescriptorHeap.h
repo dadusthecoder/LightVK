@@ -1,6 +1,6 @@
 #pragma once
-#include "Engine/Renderer/Vulkan/Helpers.h"
-#include "Engine/Renderer/Gpu/Resource.h"
+#include "Engine/Gpu/Vulkan/Helpers.h"
+#include "Engine/Gpu/Resource.h"
 
 namespace Lgt::Gpu {
 class DescriptorHeap {

@@ -1,5 +1,5 @@
-#include "Engine/Renderer/Gpu/Passes/Gbuffer.h"
-#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Gpu/Passes/Gbuffer.h"
+#include "Engine/Gpu/Context.h"
 
 namespace Lgt {
 namespace Gpu::Pass {
@@ -19,9 +19,9 @@ void GBuffer::Reset() {
     Context = {};
 }
 
-void GBuffer::Execute(RenderGraphPass* pass, void* userdata) {}
+void GBuffer::Execute(FrameGraphPass* pass, void* userdata) {}
 
-void GBuffer::Setup(const RenderGraphBuilder& builder, RenderGraphPass* pass) {
+void GBuffer::Setup(const FrameGraphBuilder& builder, FrameGraphPass* pass) {
 
     Context.albedo = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetCurrentExtent()));
     Context.normal = Resources->CreateTexture(TextureDesc::ColorAttachment(Renderer->GetCurrentExtent()));

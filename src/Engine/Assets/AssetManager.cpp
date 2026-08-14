@@ -1,8 +1,8 @@
 #include "AssetManager.h"
 
 #include "Engine/Core/Logger.h"
-#include "Engine/Renderer/Gpu/Context.h"
-#include "Engine/Renderer/Vulkan/Context.h"
+#include "Engine/Gpu/Context.h"
+#include "Engine/Gpu/Vulkan/Context.h"
 
 #include <algorithm>
 #include <functional>

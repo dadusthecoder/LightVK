@@ -1,22 +1,22 @@
-#include "RenderGraph.h"
+#include "FrameGraph.h"
 
 namespace Lgt::Gpu {
-void RenderGraphClass::Init() {
-    LIGHTVK_INFO("RenderGraph Initialized");
+void FrameGraphClass::Init() {
+    LIGHTVK_INFO("FrameGraph Initialized");
 }
 
-void RenderGraphClass::ShoutDown() {
-    LIGHTVK_INFO("RenderGraph Shutting Down");
+void FrameGraphClass::ShoutDown() {
+    LIGHTVK_INFO("FrameGraph Shutting Down");
 }
 
-void RenderGraphClass::Reset() {
+void FrameGraphClass::Reset() {
     passes_.clear();
     nodes_.clear();
     execution_.clear();
     resources_.clear();
 }
 
-void RenderGraphClass::Execute() {
+void FrameGraphClass::Execute() {
     for (auto passID : execution_) {
         auto& pass = passes_[passID];
         pass.execute(&pass, nullptr);
@@ -24,11 +24,11 @@ void RenderGraphClass::Execute() {
 }
 
 
-void RenderGraphClass::CollectResources() {
+void FrameGraphClass::CollectResources() {
     for (auto& pass : passes_) {
-        RenderGraphBuilder builder;
+        FrameGraphBuilder builder;
         pass.setup(builder, &pass);
-        RenderGraphNode node;
+        FrameGraphNode node;
         node.passID = pass.passID;
         nodes_.push_back(std::move(node));
 
@@ -50,7 +50,7 @@ void RenderGraphClass::CollectResources() {
     }
 }
 
-void RenderGraphClass::ResolveDependencies() {
+void FrameGraphClass::ResolveDependencies() {
     for (auto& resource : resources_) {
         for (const auto& consumer : resource.second.consumers) {
             if (resource.second.producer != UINT32_MAX) {
@@ -64,7 +64,7 @@ void RenderGraphClass::ResolveDependencies() {
     }
 }
 
-void RenderGraphClass::Validate() {
+void FrameGraphClass::Validate() {
     for (const auto& [key, info] : resources_) {
         if (info.producer == UINT32_MAX) {
             LIGHTVK_WARN(
@@ -80,7 +80,7 @@ void RenderGraphClass::Validate() {
             }
         } else {
             for (auto consumer : info.consumers) {
-                LIGHTVK_TRACE("RenderGraph Edge: Producer: {} -> Consumer: {} | Resource: (type: {}, handle: {})",
+                LIGHTVK_TRACE("FrameGraph Edge: Producer: {} -> Consumer: {} | Resource: (type: {}, handle: {})",
                               info.producer != UINT32_MAX ? passes_[info.producer].name : "External",
                               passes_[consumer].name,
                               (uint32_t)key.type,
@@ -90,7 +90,7 @@ void RenderGraphClass::Validate() {
     }
 }
 
-void RenderGraphClass::TopologicalSort() {
+void FrameGraphClass::TopologicalSort() {
 
     std::vector<uint32_t> queue;
     size_t                head      = 0;
@@ -114,12 +114,12 @@ void RenderGraphClass::TopologicalSort() {
     }
 
     if (execution_.size() != passes_.size()) {
-        LIGHTVK_ERROR("RenderGraph Cycle Detected! Execution pipeline aborted.");
+        LIGHTVK_ERROR("FrameGraph Cycle Detected! Execution pipeline aborted.");
         execution_.clear();
     }
 }
 
-void RenderGraphClass::Compile() {
+void FrameGraphClass::Compile() {
     resources_.clear();
     execution_.clear();
     nodes_.clear();

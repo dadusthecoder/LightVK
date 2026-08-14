@@ -6,9 +6,9 @@
 #include "Engine/Core/Logger.h"
 #include "Engine/Core/Profiler.h"
 #include <GLFW/glfw3.h>
-#include "Engine/Renderer/Vulkan/Helpers.h"
-#include "Engine/Renderer/Vulkan/Context.h"
-#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Gpu/Vulkan/Helpers.h"
+#include "Engine/Gpu/Vulkan/Context.h"
+#include "Engine/Gpu/Context.h"
 #include "Engine/UI/ImGuiLayer.h"
 #include "Engine/Core/Math.h"
 

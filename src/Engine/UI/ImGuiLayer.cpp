@@ -6,7 +6,7 @@
 #include <imgui_impl_vulkan.h>
 #include <stdexcept>
 
-#include "Engine/Renderer/Vulkan/Context.h"
+#include "Engine/Gpu/Vulkan/Context.h"
 #include "Engine/Core/Logger.h"
 
 namespace Lgt {

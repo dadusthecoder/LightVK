@@ -2,7 +2,7 @@
 #include "Engine/Scene/Components.h"
 #include "Engine/Scene/SceneSerializer.h"
 #include "Engine/Physics/PhysicsComponents.h"
-#include "Engine/Renderer/Gpu/Context.h"
+#include "Engine/Gpu/Context.h"
 #include "Utils/FileDialogs.h"
 
 #include "Editor.h"
@@ -63,7 +63,14 @@ public:
         auto cam = _world->CreateEntity("EditorCamera");
         cam.Add<Lgt::Component::Camera>();
         cam.Get<Lgt::Component::LocalTransform>().position = {0.f, 0.f, 5.f};
+
+        // Load wireframe colliders models
+        _cubeModelGuid   = _assets->LoadModel("Assets/Cube/cube.gltf");
+        _sphereModelGuid = _assets->LoadModel("Assets/Sphere/Sphere.gltf");
     }
+
+    Lgt::Assets::AssetGuid _cubeModelGuid;
+    Lgt::Assets::AssetGuid _sphereModelGuid;
 
     void EnterPlayMode() {
         auto context = editor.GetContext();
@@ -180,8 +187,6 @@ public:
                 context->currentGizmoOperation = Lgt::Editor::GizmoOperation::Scale;
         }
 
-        // Apply transform changes (always needed for editor camera etc.)
-        _world->UpdateTransforms();
     }
 
     void OnRender() override {
@@ -236,9 +241,57 @@ public:
                 sceneDrawList.commands[i].transform = worldTransform * sceneDrawList.commands[i].transform;
         }
 
+        Lgt::Gpu::DrawList wireframeDrawList;
+        
+        // Add Box Colliders
+        auto boxView = _world->Registry().view<Lgt::Component::BoxCollider, Lgt::Component::WorldTransform>();
+        const auto* cubeGpuModel = _assets->GetGpuModel(_cubeModelGuid);
+        if (cubeGpuModel != nullptr) {
+            for (const auto entity : boxView) {
+                const auto& worldTransform = boxView.get<Lgt::Component::WorldTransform>(entity).matrix;
+                const auto& collider       = boxView.get<Lgt::Component::BoxCollider>(entity);
+
+                glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), collider.halfExtents);
+                glm::mat4 finalMat = worldTransform * scaleMat;
+
+                const size_t firstCommand = wireframeDrawList.commands.size();
+                wireframeDrawList.commands.insert(
+                    wireframeDrawList.commands.end(), cubeGpuModel->drawList.commands.begin(), cubeGpuModel->drawList.commands.end());
+                wireframeDrawList.indexCounts.insert(
+                    wireframeDrawList.indexCounts.end(), cubeGpuModel->drawList.indexCounts.begin(), cubeGpuModel->drawList.indexCounts.end());
+                for (size_t i = firstCommand; i < wireframeDrawList.commands.size(); ++i) {
+                    wireframeDrawList.commands[i].transform = finalMat * wireframeDrawList.commands[i].transform;
+                    wireframeDrawList.commands[i].isWireframe = 1;
+                }
+            }
+        }
+
+        // Add Sphere Colliders
+        auto sphereView = _world->Registry().view<Lgt::Component::SphereCollider, Lgt::Component::WorldTransform>();
+        const auto* sphereGpuModel = _assets->GetGpuModel(_sphereModelGuid);
+        if (sphereGpuModel != nullptr) {
+            for (const auto entity : sphereView) {
+                const auto& worldTransform = sphereView.get<Lgt::Component::WorldTransform>(entity).matrix;
+                const auto& collider       = sphereView.get<Lgt::Component::SphereCollider>(entity);
+
+                glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), glm::vec3(collider.radius));
+                glm::mat4 finalMat = worldTransform * scaleMat;
+
+                const size_t firstCommand = wireframeDrawList.commands.size();
+                wireframeDrawList.commands.insert(
+                    wireframeDrawList.commands.end(), sphereGpuModel->drawList.commands.begin(), sphereGpuModel->drawList.commands.end());
+                wireframeDrawList.indexCounts.insert(
+                    wireframeDrawList.indexCounts.end(), sphereGpuModel->drawList.indexCounts.begin(), sphereGpuModel->drawList.indexCounts.end());
+                for (size_t i = firstCommand; i < wireframeDrawList.commands.size(); ++i) {
+                    wireframeDrawList.commands[i].transform = finalMat * wireframeDrawList.commands[i].transform;
+                    wireframeDrawList.commands[i].isWireframe = 1;
+                }
+            }
+        }
+
         // Always call Render, even if the draw list is empty,
         // to ensure the scene target is cleared and transitioned properly for ImGui.
-        Lgt::Gpu::Renderer->Render(sceneDrawList, viewProj);
+        Lgt::Gpu::Renderer->Render(sceneDrawList, wireframeDrawList, viewProj);
     }
 
     void OnDrawUi() override {

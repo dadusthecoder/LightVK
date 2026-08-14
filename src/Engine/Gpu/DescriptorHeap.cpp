@@ -1,6 +1,6 @@
 #include "DescriptorHeap.h"
 #include "Context.h"
-#include "Engine/Renderer/Vulkan/Context.h"
+#include "Engine/Gpu/Vulkan/Context.h"
 #include "Engine/Core/Logger.h"
 #include "Engine/Core/VkCheck.h"
 

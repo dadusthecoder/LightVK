@@ -3,7 +3,7 @@
 #include "Engine/Scene/World.h"
 #include "Engine/Scene/Components.h"
 
-#include "Engine/Renderer/Gpu/Renderer.h"
+#include "Engine/Gpu/Renderer.h"
 #include "Engine/Scene/Systems/Transform.h"
 
 namespace Lgt {
