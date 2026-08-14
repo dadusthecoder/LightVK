@@ -18,6 +18,8 @@ public:
     Entity CreateEntity(std::string name = "Entity");
     void   DestroyEntity(Entity entity);
     void   Update(float deltaTime);
+    void   UpdateTransforms();
+    void   SetPhysicsEnabled(bool enabled) { _physicsEnabled = enabled; }
 
     entt::registry&       Registry() { return m_Registry; }
     const entt::registry& Registry() const { return m_Registry; }
@@ -31,6 +33,7 @@ private:
     System::Physics   _physics_sys;
     entt::registry    m_Registry;
     SceneGraph        _graph;
+    bool              _physicsEnabled = true;
 };
 
 } // namespace Lgt

@@ -10,6 +10,7 @@ add_library(LightVKEngine SHARED
 
 set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/imgui)
 set(IMNODEFLOW_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/ImNodeFlow)
+set(IMGUIZMO_DIR ${CMAKE_SOURCE_DIR}/ThirdParty/ImGuizmo)
 
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui.cpp
@@ -20,6 +21,7 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
     ${IMNODEFLOW_DIR}/src/ImNodeFlow.cpp
+    ${IMGUIZMO_DIR}/src/ImGuizmo.cpp
 )
 
 target_sources(LightVKEngine PRIVATE ${IMGUI_SOURCES})
@@ -31,6 +33,7 @@ target_include_directories(LightVKEngine
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
     ${IMNODEFLOW_DIR}/include
+    ${IMGUIZMO_DIR}/src
     "${CMAKE_SOURCE_DIR}/ThirdParty/stb"
 )
 

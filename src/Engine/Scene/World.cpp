@@ -36,7 +36,12 @@ void World::DestroyEntity(Entity entity) {
 }
 
 void World::Update(float deltaTime) {
-    _physics_sys.Update(deltaTime);
+    if (_physicsEnabled)
+        _physics_sys.Update(deltaTime);
+    transform_sys.Update();
+}
+
+void World::UpdateTransforms() {
     transform_sys.Update();
 }
 

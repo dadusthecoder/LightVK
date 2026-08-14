@@ -15,6 +15,14 @@ public:
         Lgt::Gpu::Renderer->ResizeSceneTarget({1280, 720});
         editor.Init(_world.get());
 
+        // Editor starts in Edit mode — physics disabled
+        _world->SetPhysicsEnabled(false);
+
+        // Wire up play/stop callbacks
+        auto context = editor.GetContext();
+        context->onPlay = [this]() { EnterPlayMode(); };
+        context->onStop = [this]() { ExitPlayMode(); };
+
         // Create editor camera
         auto cam = _world->CreateEntity("EditorCamera");
         cam.Add<Lgt::Component::Camera>();
@@ -45,6 +53,49 @@ public:
         sphereRB.restitution = 0.8f;
         sphere.Add<Lgt::Component::SphereCollider>(0.5f);
         
+    }
+
+    void EnterPlayMode() {
+        auto context = editor.GetContext();
+        if (context->mode == Lgt::Editor::EditorMode::Play) return;
+
+        // Snapshot all LocalTransforms
+        context->transformSnapshot.clear();
+        auto view = _world->Registry().view<Lgt::Component::LocalTransform>();
+        for (auto e : view) {
+            auto& lt = view.get<Lgt::Component::LocalTransform>(e);
+            context->transformSnapshot[static_cast<uint32_t>(e)] = lt;
+        }
+
+        // Enable physics and enter play mode
+        _world->SetPhysicsEnabled(true);
+        context->mode = Lgt::Editor::EditorMode::Play;
+    }
+
+    void ExitPlayMode() {
+        auto context = editor.GetContext();
+        if (context->mode == Lgt::Editor::EditorMode::Edit) return;
+
+        // Remove all physics bodies by resetting _registered flags
+        // Physics won't step anymore, so we just need to clean up Jolt state
+        auto rbView = _world->Registry().view<Lgt::Component::RigidBody>();
+        for (auto e : rbView) {
+            Lgt::Entity entity(e, _world.get());
+            _world->GetPhysics().RemoveBody(entity);
+        }
+
+        // Restore all LocalTransforms from snapshot
+        for (auto& [entityId, snapshot] : context->transformSnapshot) {
+            auto handle = static_cast<entt::entity>(entityId);
+            if (_world->Registry().valid(handle) && _world->Registry().all_of<Lgt::Component::LocalTransform>(handle)) {
+                _world->Registry().get<Lgt::Component::LocalTransform>(handle) = snapshot;
+            }
+        }
+        context->transformSnapshot.clear();
+
+        // Disable physics and return to edit mode
+        _world->SetPhysicsEnabled(false);
+        context->mode = Lgt::Editor::EditorMode::Edit;
     }
 
     float yaw   = -90.0f;
@@ -107,6 +158,23 @@ public:
 
                 break; // Only control the first active camera
             }
+        } else {
+            // Cursor not captured: handle Gizmo shortcuts
+            if (_input->WasKeyPressed(Lgt::Key::W))
+                context->currentGizmoOperation = Lgt::Editor::GizmoOperation::Translate;
+            if (_input->WasKeyPressed(Lgt::Key::E))
+                context->currentGizmoOperation = Lgt::Editor::GizmoOperation::Rotate;
+            if (_input->WasKeyPressed(Lgt::Key::R))
+                context->currentGizmoOperation = Lgt::Editor::GizmoOperation::Scale;
+        }
+
+        // Apply transform changes (always needed for editor camera etc.)
+        _world->UpdateTransforms();
+
+        static int frameCount = 0;
+        frameCount++;
+        if (frameCount > 5) {
+            glfwSetWindowShouldClose(_window, true);
         }
     }
 

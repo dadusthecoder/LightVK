@@ -81,24 +81,22 @@ void InspectorPanel::DrawComponentTimeline(Entity entity) {
 void InspectorPanel::DrawComponents(Entity entity) {
     const auto& inspectors = InspectorRegistry::GetInspectors();
     
-    for (const auto& [type_hash, inspectorData] : inspectors) {
-        // EnTT doesn't give us a direct way to iterate components on an entity by type hash dynamically without a reflection system.
-        // We will do a manual check for known types just for this implementation until full reflection is added.
-    }
-    
-    // Manual dispatch for now to avoid building a complex dynamic Any type router
-    bool isExpanded = true, isEnabled = true;
+    // Defer component removal to end of function
+    // But since EnTT handles it fine we can just remove immediately,
+    // however for safety and to keep iteration logic clean, we'll do it safely.
     
     if (entity.Has<Component::LocalTransform>()) {
-        bool removed = false;
-        if (Widgets::DrawComponentCardBegin("LocalTransform", isExpanded, isEnabled, false, &removed)) {
+        static bool isExpanded = true;
+        bool isEnabled = true; // Transform cannot be disabled
+        if (Widgets::DrawComponentCardBegin("LocalTransform", isExpanded, isEnabled, false, nullptr)) {
             inspectors.at(entt::type_id<Component::LocalTransform>().hash()).drawCallback(entity, &entity.Get<Component::LocalTransform>());
         }
         Widgets::DrawComponentCardEnd();
-        if (removed) entity.Remove<Component::LocalTransform>();
     }
     
     if (entity.Has<Component::Camera>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Camera", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::Camera>().hash()).drawCallback(entity, &entity.Get<Component::Camera>());
@@ -108,6 +106,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
     }
 
     if (entity.Has<Component::Material>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Material", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::Material>().hash()).drawCallback(entity, &entity.Get<Component::Material>());
@@ -117,6 +117,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
     }
     
     if (entity.Has<Component::ModelInstance>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Model Instance", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::ModelInstance>().hash()).drawCallback(entity, &entity.Get<Component::ModelInstance>());
@@ -126,6 +128,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
     }
     
     if (entity.Has<Component::DirectionalLight>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Directional Light", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::DirectionalLight>().hash()).drawCallback(entity, &entity.Get<Component::DirectionalLight>());
@@ -135,6 +139,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
     }
     
     if (entity.Has<Component::PointLight>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Point Light", isExpanded, isEnabled, true, &removed)) {
             inspectors.at(entt::type_id<Component::PointLight>().hash()).drawCallback(entity, &entity.Get<Component::PointLight>());
@@ -145,6 +151,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
 
     // ── Physics Components ──────────────────────────────────────────────
     if (entity.Has<Component::RigidBody>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Rigid Body", isExpanded, isEnabled, true, &removed)) {
             auto& rb = entity.Get<Component::RigidBody>();
@@ -158,16 +166,14 @@ void InspectorPanel::DrawComponents(Entity entity) {
             ImGui::DragFloat("Linear Damping", &rb.linearDamping, 0.01f, 0.0f, 1.0f);
             ImGui::DragFloat("Angular Damping", &rb.angularDamping, 0.01f, 0.0f, 1.0f);
             ImGui::DragFloat("Gravity Factor", &rb.gravityFactor, 0.01f, 0.0f, 10.0f);
-            if (rb._registered)
-                ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "Registered (BodyID: %u)", rb.bodyId);
-            else
-                ImGui::TextDisabled("Not yet registered");
         }
         Widgets::DrawComponentCardEnd();
         if (removed) entity.Remove<Component::RigidBody>();
     }
 
     if (entity.Has<Component::BoxCollider>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Box Collider", isExpanded, isEnabled, true, &removed)) {
             auto& col = entity.Get<Component::BoxCollider>();
@@ -178,6 +184,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
     }
 
     if (entity.Has<Component::SphereCollider>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Sphere Collider", isExpanded, isEnabled, true, &removed)) {
             auto& col = entity.Get<Component::SphereCollider>();
@@ -188,6 +196,8 @@ void InspectorPanel::DrawComponents(Entity entity) {
     }
 
     if (entity.Has<Component::CapsuleCollider>()) {
+        static bool isExpanded = true;
+        bool isEnabled = true;
         bool removed = false;
         if (Widgets::DrawComponentCardBegin("Capsule Collider", isExpanded, isEnabled, true, &removed)) {
             auto& col = entity.Get<Component::CapsuleCollider>();
@@ -234,6 +244,7 @@ using namespace Lgt::Editor;
 
 void DrawTransformInspector(Lgt::Entity entity, void* data) {
     auto& transform = *static_cast<Lgt::Component::LocalTransform*>(data);
+    
     Widgets::DrawVec3Control("Position", transform.position);
     
     glm::vec3 euler = glm::degrees(glm::eulerAngles(transform.rotation));

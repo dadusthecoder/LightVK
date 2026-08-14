@@ -22,6 +22,8 @@ public:
     constexpr entt::entity Handle() const noexcept {
         return _handle;
     }
+    
+    [[nodiscard]] World* GetWorld() const noexcept { return _world; }
 
     [[nodiscard]] bool IsValid() const noexcept { return _handle != entt::null && _world && _world->Registry().valid(_handle); }
 

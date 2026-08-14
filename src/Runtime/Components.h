@@ -2,6 +2,7 @@
 #include "Engine/Core/LightVK.h"
 
 namespace Game::Component {
+    
 struct Interactabel {
     /* data */
 };

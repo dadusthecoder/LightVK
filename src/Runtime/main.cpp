@@ -8,47 +8,24 @@ public:
     Game::PlayerContext      playerContext;
 
     void OnInit() override {
-        // Lgt::SceneSerializer serializer(_world.get());
-        // if (serializer.DeserializeBinary("scene.bin")) {
-        //     LIGHTVK_INFO("Successfully loaded scene.bin in Runtime!");
-        // } else {
-        //     LIGHTVK_ERROR("Failed to load scene.bin");
-        // }
-
-        auto modelView = _world->Registry().view<Lgt::Component::ModelInstance>();
-        for (const auto entity : modelView) {
-            const auto& instance = modelView.get<Lgt::Component::ModelInstance>(entity);
-            _assets->LoadModel(instance.model);
-        }
-
         appContext.world  = _world.get();
         appContext.input  = _input.get();
         appContext.timer  = _timer.get();
         appContext.assets = _assets.get();
 
-        // Create a floor
-        auto floor                                           = _world->CreateEntity("Floor");
-        floor.Get<Lgt::Component::LocalTransform>().position = {0.f, -5.f, 0.f};
-        auto floorId = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Tests/test_scale_01.glb");
-        if (floorId.IsValid())
-            floor.Add<Lgt::Component::ModelInstance>().model = floorId;
+        Lgt::SceneSerializer serializer(_world.get());
+        if (serializer.DeserializeBinary("scene.bin")) {
+            LIGHTVK_INFO("Successfully loaded scene.bin in Runtime!");
+        } else {
+            LIGHTVK_ERROR("Failed to load scene.bin");
+        }
 
-        auto& floorRB       = floor.Add<Lgt::Component::RigidBody>();
-        floorRB.motionType  = Lgt::Component::MotionType::Static;
-        floorRB.restitution = 0.5f;
-        floor.Add<Lgt::Component::BoxCollider>(glm::vec3{50.f, 0.1f, 50.f});
-
-        // Create a sphere
-        auto sphere                                           = _world->CreateEntity("Sphere");
-        sphere.Get<Lgt::Component::LocalTransform>().position = {0.f, 10.f, 0.f};
-        auto sphereId = _assets->LoadModel("D:/DEV/cpp/LightVK/Assets/Sphere/Sphere.gltf");
-        if (sphereId)
-            sphere.Add<Lgt::Component::ModelInstance>().model = sphereId;
-
-        auto& sphereRB       = sphere.Add<Lgt::Component::RigidBody>();
-        sphereRB.motionType  = Lgt::Component::MotionType::Dynamic;
-        sphereRB.restitution = 0.8f;
-        sphere.Add<Lgt::Component::SphereCollider>(0.5f);
+        // Load models for deserialized entities
+        auto modelView = _world->Registry().view<Lgt::Component::ModelInstance>();
+        for (const auto entity : modelView) {
+            const auto& instance = modelView.get<Lgt::Component::ModelInstance>(entity);
+            _assets->LoadModel(instance.model);
+        }
 
         Game::System::All::Init(appContext, playerContext);
     }

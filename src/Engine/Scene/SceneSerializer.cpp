@@ -141,6 +141,10 @@ bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath) {
 
     entt::registry& reg = m_World->Registry();
 
+    // Magic Header Write
+    const uint32_t MAGIC_SCNE = 0x454E4353; // "SCNE"
+    out.write(reinterpret_cast<const char*>(&MAGIC_SCNE), sizeof(uint32_t));
+
     // Serialize Tags (special case for std::string)
     auto     tagView  = reg.view<Component::Tag>();
     uint32_t tagCount = (uint32_t)tagView.size();
@@ -163,6 +167,10 @@ bool SceneSerializer::SerializeBinary(const std::filesystem::path& filepath) {
     SerializeComponentArray<Component::PointLight>(out, reg);
     SerializeComponentArray<Component::ModelInstance>(out, reg);
     SerializeComponentArray<Component::Camera>(out, reg);
+    SerializeComponentArray<Component::RigidBody>(out, reg);
+    SerializeComponentArray<Component::BoxCollider>(out, reg);
+    SerializeComponentArray<Component::SphereCollider>(out, reg);
+    SerializeComponentArray<Component::CapsuleCollider>(out, reg);
 
     out.close();
     return true;
@@ -179,9 +187,19 @@ bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath) {
     entt::registry& reg = m_World->Registry();
     reg.clear();
 
+    // Magic Header Check
+    const uint32_t MAGIC_SCNE = 0x454E4353; // "SCNE"
+    uint32_t magic;
+    in.read(reinterpret_cast<char*>(&magic), sizeof(uint32_t));
+    if (magic != MAGIC_SCNE) {
+        LIGHTVK_ERROR("Invalid scene file format: Missing SCNE magic header.");
+        return false;
+    }
+
     // Deserialize Tags
-    uint32_t tagCount;
+    uint32_t tagCount = 0;
     in.read(reinterpret_cast<char*>(&tagCount), sizeof(uint32_t));
+    LIGHTVK_INFO("SceneSerializer: Read tagCount = {}", tagCount);
     for (uint32_t i = 0; i < tagCount; ++i) {
         entt::entity e;
         in.read(reinterpret_cast<char*>(&e), sizeof(entt::entity));
@@ -206,6 +224,18 @@ bool SceneSerializer::DeserializeBinary(const std::filesystem::path& filepath) {
     DeserializeComponentArray<Component::PointLight>(in, reg);
     DeserializeComponentArray<Component::ModelInstance>(in, reg);
     DeserializeComponentArray<Component::Camera>(in, reg);
+    DeserializeComponentArray<Component::RigidBody>(in, reg);
+    DeserializeComponentArray<Component::BoxCollider>(in, reg);
+    DeserializeComponentArray<Component::SphereCollider>(in, reg);
+    DeserializeComponentArray<Component::CapsuleCollider>(in, reg);
+
+    // Reset physics runtime state
+    auto rbView = reg.view<Component::RigidBody>();
+    for (auto entity : rbView) {
+        auto& rb = rbView.get<Component::RigidBody>(entity);
+        rb.bodyId = 0xFFFFFFFF;
+        rb._registered = false;
+    }
 
     in.close();
     return true;

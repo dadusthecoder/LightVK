@@ -104,9 +104,7 @@ bool DrawComponentCardBegin(const std::string& name, bool& isExpanded, bool& isE
     
     ImGui::BeginChild("##ComponentCard", ImVec2(0, 0), ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     
-    bool headerClicked = false;
     ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
-    
     float lineHeight = ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
     
     // Draw expand/collapse arrow
@@ -122,8 +120,15 @@ bool DrawComponentCardBegin(const std::string& name, bool& isExpanded, bool& isE
     
     ImGui::Text("%s", name.c_str());
     
+    // Make the header area clickable to toggle expand/collapse (without overlapping the X button)
+    ImGui::SetCursorScreenPos(cursorPos);
+    float toggleWidth = pRemoved ? (contentRegionAvailable.x - lineHeight - 4.0f) : contentRegionAvailable.x;
+    if (ImGui::InvisibleButton("##HeaderToggle", ImVec2(toggleWidth, lineHeight))) {
+        isExpanded = !isExpanded;
+    }
+    
     if (pRemoved) {
-        ImGui::SameLine(contentRegionAvailable.x - lineHeight);
+        ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + contentRegionAvailable.x - lineHeight, cursorPos.y));
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 0.6f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
@@ -131,12 +136,6 @@ bool DrawComponentCardBegin(const std::string& name, bool& isExpanded, bool& isE
             *pRemoved = true;
         }
         ImGui::PopStyleColor(3);
-    }
-    
-    // Make the header area clickable to toggle expand/collapse
-    ImGui::SetCursorScreenPos(cursorPos);
-    if (ImGui::InvisibleButton("##HeaderToggle", ImVec2(contentRegionAvailable.x, lineHeight))) {
-        isExpanded = !isExpanded;
     }
     
     if (isExpanded) {
